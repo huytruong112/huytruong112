@@ -1,8 +1,28 @@
-# 🛡️ VPN Admin Pro - 3X-UI Management Dashboard
+# 🛡️ VPN Admin Pro v2.0 - 3X-UI Management Dashboard
 
 Giao diện quản lý VPN/Proxy hiện đại cho 3X-UI Panel với đầy đủ tính năng.
 
+**🆕 v2.0:** Có 2 phiên bản - Single-Server (1 VPS) & Multi-Server (2+ VPS)
+
+## 📦 2 Phiên bản
+
+### 1️⃣ Single-Server Edition
+**File:** `vpn_admin_pro.py`  
+**Dùng cho:** 1 VPS duy nhất  
+**Chạy:** `bash run.sh`
+
+### 2️⃣ Multi-Server Edition 🆕
+**File:** `vpn_admin_pro_multiserver.py`  
+**Dùng cho:** 2+ VPS (không giới hạn)  
+**Chạy:** `bash run_multiserver.sh`
+
+**Chưa biết chọn cái nào?** → Đọc [WHICH_VERSION.md](WHICH_VERSION.md)
+
+---
+
 ## ✨ Tính năng chính
+
+### Single-Server: 20+ tính năng
 
 ### 📊 Dashboard
 - Hiển thị tổng quan: Tổng user, user active, lưu lượng, hết hạn
@@ -62,41 +82,47 @@ Giao diện quản lý VPN/Proxy hiện đại cho 3X-UI Panel với đầy đ�
 - Làm mới cache
 - Thông tin phiên bản
 
-## 🚀 Cài đặt
+## 🚀 Quick Start
 
-### Yêu cầu
-- Python 3.8+
-- 3X-UI Panel đã cài đặt và chạy
-- VPS/Server có kết nối internet
+### Single-Server (1 VPS)
 
-### Các bước cài đặt
-
-1. **Clone hoặc tải code:**
 ```bash
-git clone <repo-url>
-cd vpn-admin-pro
+# 1. Cài dependencies
+pip3 install -r requirements.txt
+
+# 2. Sửa config (dòng 11-13 trong vpn_admin_pro.py)
+HOST = "http://YOUR_IP:8001"
+USERNAME = "admin"
+PASSWORD = "your_password"
+
+# 3. Chạy
+bash run.sh
+
+# 4. Truy cập
+http://YOUR_IP:8501
 ```
 
-2. **Cài đặt dependencies:**
+**Chi tiết:** [QUICK_START.md](QUICK_START.md)
+
+---
+
+### Multi-Server (2+ VPS) 🆕
+
 ```bash
-pip install -r requirements.txt
+# 1. Cài dependencies
+pip3 install -r requirements.txt
+
+# 2. Chạy
+bash run_multiserver.sh
+
+# 3. Thêm server qua UI
+Menu "Quản lý Server" → Thêm Server
+
+# 4. Sử dụng
+Switch server từ dropdown → Quản lý như bình thường
 ```
 
-3. **Cấu hình kết nối:**
-Mở file `vpn_admin_pro.py` và chỉnh sửa:
-```python
-HOST = "http://YOUR_IP:8001"  # Địa chỉ Panel 3X-UI
-USERNAME = "admin"             # Username Panel
-PASSWORD = "your_password"     # Password Panel
-```
-
-4. **Chạy ứng dụng:**
-```bash
-streamlit run vpn_admin_pro.py
-```
-
-5. **Truy cập:**
-Mở trình duyệt: `http://localhost:8501`
+**Chi tiết:** [MULTISERVER_QUICKSTART.md](MULTISERVER_QUICKSTART.md)
 
 ## 📖 Hướng dẫn sử dụng
 
@@ -127,6 +153,27 @@ Mở trình duyệt: `http://localhost:8501`
 4. Click **💾 Download JSON File**
 5. Lưu file JSON vào máy tính
 
+## 🌐 Multi-Server Features (Bonus!)
+
+Phiên bản Multi-Server cho phép:
+
+- ✅ **Quản lý không giới hạn server** trong 1 giao diện
+- ✅ **Switch server** chỉ với 1 click
+- ✅ **Tổng quan toàn hệ thống** - Xem tất cả server cùng lúc
+- ✅ **So sánh server** - Biểu đồ, Metrics
+- ✅ **Thêm/Xóa server** qua UI (không edit code)
+- ✅ **Test connection** từng server
+- ✅ **Load balancing** - Chọn server ít user nhất
+
+**Yêu cầu:**
+> "khi có nhiều cấu hình khác nhau, nhiều server 3x-ui hoặc các panel khác thì làm thế nào để quản lý chung 1 trang quản trị"
+
+✅ **Đã giải quyết hoàn toàn!**
+
+Đọc chi tiết: [MULTISERVER_GUIDE.md](MULTISERVER_GUIDE.md)
+
+---
+
 ## 🔧 Troubleshooting
 
 ### Lỗi kết nối Panel
@@ -144,9 +191,32 @@ Mở trình duyệt: `http://localhost:8501`
 pip install -r requirements.txt --upgrade
 ```
 
+## 📚 Documentation
+
+### 🔴 Quick Start (5 phút)
+- [00_START_HERE.md](00_START_HERE.md) - Điểm vào
+- [QUICK_START.md](QUICK_START.md) - Single-Server 2 phút
+- [MULTISERVER_QUICKSTART.md](MULTISERVER_QUICKSTART.md) - Multi-Server 3 phút
+- [WHICH_VERSION.md](WHICH_VERSION.md) - Chọn phiên bản
+
+### 🟡 Complete Guides
+- [HUONG_DAN.md](HUONG_DAN.md) - Single-Server chi tiết (VI)
+- [MULTISERVER_GUIDE.md](MULTISERVER_GUIDE.md) - Multi-Server chi tiết (VI)
+- [INSTALL.md](INSTALL.md) - Installation & Troubleshooting (EN)
+- [FEATURES.md](FEATURES.md) - Technical features (EN)
+
+### 🟢 References
+- [INDEX.md](INDEX.md) - Navigation
+- [CHANGELOG.md](CHANGELOG.md) - Version history
+- [SUMMARY.md](SUMMARY.md) - Project overview
+
+**Tổng:** 20+ documentation files
+
+---
+
 ## 📝 Changelog
 
-### Version 2.0 (Hiện tại)
+### Version 2.0 (Current)
 - ✅ Dashboard với real-time monitoring
 - ✅ Tạo user hàng loạt
 - ✅ Quản lý user đầy đủ (Reset, Gia hạn, Toggle)

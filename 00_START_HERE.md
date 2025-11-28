@@ -7,7 +7,36 @@
 ```
 ✅ Từ:  300 dòng, 5 tính năng
 ✅ Thành: 800+ dòng, 20+ tính năng
+✅ BONUS: Multi-Server Edition (Quản lý nhiều server!)
 ```
+
+---
+
+## 🤔 BẠN CÓ BAO NHIÊU VPS?
+
+### 1️⃣ Có 1 VPS duy nhất
+👉 Dùng **Single-Server Edition**  
+📖 Đọc tiếp phần dưới
+
+### 2️⃣ Có 2+ VPS  
+👉 Dùng **Multi-Server Edition**  
+📖 Nhảy tới: **[MULTISERVER_QUICKSTART.md](MULTISERVER_QUICKSTART.md)**
+
+### 3️⃣ Chưa chắc / Có kế hoạch mua thêm
+👉 Đọc **[WHICH_VERSION.md](WHICH_VERSION.md)** để quyết định
+
+---
+
+## 📦 2 PHIÊN BẢN CÓ SẴN
+
+| Phiên bản | File | Dùng khi | Chạy |
+|-----------|------|----------|------|
+| **Single-Server** | vpn_admin_pro.py | 1 VPS | `bash run.sh` |
+| **Multi-Server** | vpn_admin_pro_multiserver.py | 2+ VPS | `bash run_multiserver.sh` |
+
+**Chưa biết chọn cái nào?** → Đọc [WHICH_VERSION.md](WHICH_VERSION.md)
+
+---
 
 ---
 
@@ -37,14 +66,17 @@ bash run.sh
 
 ## 📚 TÀI LIỆU
 
-Tôi đã tạo **11 file** cho bạn. Đọc file nào?
+Tôi đã tạo **20+ file** cho bạn. Đọc file nào?
 
 ### 🔴 Chưa biết gì → Đọc ngay
+- **[WHICH_VERSION.md](WHICH_VERSION.md)** ← Chọn Single hay Multi?
 - **[INDEX.md](INDEX.md)** ← Danh mục tất cả file
-- **[QUICK_START.md](QUICK_START.md)** ← Chạy trong 2 phút
+- **[QUICK_START.md](QUICK_START.md)** ← Single-Server (2 phút)
+- **[MULTISERVER_QUICKSTART.md](MULTISERVER_QUICKSTART.md)** ← Multi-Server (3 phút)
 
 ### 🟡 Đã chạy được → Học cách dùng
-- **[HUONG_DAN.md](HUONG_DAN.md)** ← Chi tiết từng tính năng (VI)
+- **[HUONG_DAN.md](HUONG_DAN.md)** ← Single-Server chi tiết (VI)
+- **[MULTISERVER_GUIDE.md](MULTISERVER_GUIDE.md)** ← Multi-Server chi tiết (VI)
 
 ### 🟢 Gặp lỗi → Fix ngay
 - **[INSTALL.md](INSTALL.md)** ← Troubleshooting
