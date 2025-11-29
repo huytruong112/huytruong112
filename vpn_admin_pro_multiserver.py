@@ -383,18 +383,23 @@ def reset_traffic(session, host, inbound_id, inbounds):
         }
         
         # DEBUG
-        with st.expander("🔍 Debug Info", expanded=False):
+        with st.expander("🔍 Debug Info", expanded=True):
             st.write("**Request URL:**", f"{host}/xui/inbound/update/{inbound_id}")
             st.write("**Payload keys:**", list(payload.keys()))
             st.write("**Settings type:**", type(payload['settings']))
-            st.write("**Settings preview:**", str(payload['settings'])[:100])
+            st.write("---")
+            st.write("**FULL PAYLOAD:**")
+            st.json({k: str(v)[:200] if len(str(v)) > 200 else v for k, v in payload.items()})
         
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
         
         # DEBUG Response
-        with st.expander("🔍 Debug Response", expanded=False):
+        with st.expander("🔍 Debug Response", expanded=True):
             st.write("**Status Code:**", resp.status_code)
             st.write("**Response Text:**", resp.text[:500])
+            if resp.status_code == 500:
+                st.error("⚠️ **Server Error 500**")
+                st.write("API reject payload - Check format!")
         
         if resp.status_code == 200:
             if "success" in resp.text.lower():
@@ -442,10 +447,13 @@ def extend_expiry(session, host, inbound_id, additional_days, inbounds):
         }
         
         # DEBUG
-        with st.expander("🔍 Debug - Gia hạn", expanded=False):
+        with st.expander("🔍 Debug - Gia hạn", expanded=True):
             st.write("**Old expiry:**", current_expiry)
             st.write("**New expiry:**", new_expiry)
             st.write("**Diff days:**", (new_expiry - current_expiry) / (86400 * 1000))
+            st.write("---")
+            st.write("**FULL PAYLOAD:**")
+            st.json({k: str(v)[:200] if len(str(v)) > 200 else v for k, v in payload.items()})
         
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
         
