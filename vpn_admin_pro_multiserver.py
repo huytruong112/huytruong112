@@ -251,6 +251,72 @@ def delete_inbound(session, host, inbound_id):
     except:
         return False
 
+def bulk_delete_inbounds(session, host, inbound_ids):
+    """Xóa nhiều inbound cùng lúc"""
+    success_count = 0
+    failed_count = 0
+    
+    for inbound_id in inbound_ids:
+        try:
+            resp = session.post(f"{host}/xui/inbound/del/{inbound_id}", timeout=10)
+            if resp.status_code == 200:
+                success_count += 1
+            else:
+                failed_count += 1
+        except:
+            failed_count += 1
+    
+    return success_count, failed_count
+
+def update_inbound(session, host, inbound_id, inbounds, new_remark=None, new_days=None, new_data_limit_gb=None):
+    """Cập nhật thông tin inbound"""
+    try:
+        # Tìm inbound hiện tại
+        current = next((x for x in inbounds if x['id'] == inbound_id), None)
+        if not current:
+            return False, "Inbound không tồn tại"
+        
+        # Giữ nguyên các giá trị không thay đổi
+        remark = new_remark if new_remark is not None else current['remark']
+        
+        # Tính expiry time mới
+        if new_days is not None:
+            expiry_time = int(time.time() * 1000) + (new_days * 86400 * 1000)
+        else:
+            expiry_time = current['expiryTime']
+        
+        # Tính total bytes mới
+        if new_data_limit_gb is not None:
+            total_bytes = new_data_limit_gb * 1024 * 1024 * 1024 if new_data_limit_gb > 0 else 0
+        else:
+            total_bytes = current['total']
+        
+        # Giữ nguyên up/down hiện tại
+        up = current['up']
+        down = current['down']
+        
+        payload = {
+            "up": up,
+            "down": down,
+            "total": total_bytes,
+            "remark": remark,
+            "enable": current['enable'],
+            "expiryTime": expiry_time,
+            "listen": current.get('listen', ''),
+            "port": current['port'],
+            "protocol": current['protocol'],
+            "settings": current['settings'],
+            "streamSettings": current['streamSettings'],
+            "sniffing": current.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
+        }
+        
+        resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
+        if resp.status_code == 200 and "success" in resp.text.lower():
+            return True, "OK"
+        return False, resp.text
+    except Exception as e:
+        return False, str(e)
+
 def reset_traffic(session, host, inbound_id, inbounds):
     """Reset traffic của inbound"""
     try:
@@ -755,15 +821,23 @@ elif servers and menu in ["📊 Dashboard Server", "➕ Tạo User", "👥 Quả
     elif menu == "👥 Quản Lý User":
         st.header(f"👥 Quản lý User - {server_config['name']}")
         
-        search = st.text_input("🔍 Tìm kiếm...", placeholder="Tên hoặc port...")
+        # Search và Bulk Actions
+        col_search, col_bulk = st.columns([3, 1])
+        with col_search:
+            search = st.text_input("🔍 Tìm kiếm...", placeholder="Tên hoặc port...")
         
         if inbounds:
+            # Initialize session state for selected users
+            if 'selected_users' not in st.session_state:
+                st.session_state.selected_users = []
+            
             filtered = []
             for item in inbounds:
                 if search and (search.lower() not in item['remark'].lower() and search not in str(item['port'])):
                     continue
                 
                 gb_used = (item['up'] + item['down']) / (1024**3)
+                gb_limit = item['total'] / (1024**3) if item['total'] > 0 else 0
                 exp_date = datetime.fromtimestamp(item['expiryTime']/1000).strftime('%d/%m/%Y') if item['expiryTime'] > 0 else "Vĩnh viễn"
                 status = "✅" if item['enable'] else "❌"
                 
@@ -773,78 +847,183 @@ elif servers and menu in ["📊 Dashboard Server", "➕ Tạo User", "👥 Quả
                     "User": item['remark'],
                     "Port": item['port'],
                     "Protocol": item['protocol'].upper(),
-                    "Data (GB)": round(gb_used, 2),
-                    "Hết hạn": exp_date
+                    "Data": f"{gb_used:.2f}/{gb_limit:.0f} GB" if gb_limit > 0 else f"{gb_used:.2f} GB",
+                    "Hết hạn": exp_date,
+                    "Raw": item
                 })
             
-            df = pd.DataFrame(filtered)
-            st.dataframe(df.drop(columns=['ID']), use_container_width=True, hide_index=True)
-            
-            st.write("---")
-            
-            # Actions
             if filtered:
-                user_dict = {f"{x['User']} (Port {x['Port']})": x['ID'] for x in filtered}
-                selected = st.selectbox("Chọn user:", list(user_dict.keys()))
-                selected_id = user_dict[selected]
+                with col_bulk:
+                    # Checkbox chọn tất cả
+                    select_all = st.checkbox("☑️ Chọn tất cả", key="select_all_users")
+                    if select_all:
+                        st.session_state.selected_users = [x['ID'] for x in filtered]
+                    elif not select_all and len(st.session_state.selected_users) == len(filtered):
+                        st.session_state.selected_users = []
                 
-                col1, col2, col3, col4, col5 = st.columns(5)
-                
-                with col1:
-                    if st.button("🔄 Reset Traffic", use_container_width=True):
-                        if reset_traffic(session, server_config['host'], selected_id, inbounds):
-                            st.success("✅ Đã reset!")
-                            time.sleep(1)
+                # Nút xóa hàng loạt
+                if st.session_state.selected_users:
+                    st.info(f"📋 Đã chọn: **{len(st.session_state.selected_users)}** user")
+                    
+                    col_bulk_action1, col_bulk_action2 = st.columns(2)
+                    with col_bulk_action1:
+                        if st.button("🗑️ Xóa hàng loạt", type="primary", use_container_width=True):
+                            st.session_state['confirm_bulk_delete'] = True
+                    with col_bulk_action2:
+                        if st.button("❌ Bỏ chọn", use_container_width=True):
+                            st.session_state.selected_users = []
                             st.rerun()
-                
-                with col2:
-                    if st.button("⏱️ Gia hạn +30d", use_container_width=True):
-                        if extend_expiry(session, server_config['host'], selected_id, 30, inbounds):
-                            st.success("✅ Đã gia hạn!")
-                            time.sleep(1)
-                            st.rerun()
-                
-                with col3:
-                    current = next((x for x in inbounds if x['id'] == selected_id), None)
-                    if current:
-                        action_text = "⏸️ Tắt" if current['enable'] else "▶️ Bật"
-                        if st.button(action_text, use_container_width=True):
-                            if toggle_inbound(session, server_config['host'], selected_id, not current['enable'], inbounds):
-                                st.success("✅ Đã cập nhật!")
-                                time.sleep(1)
+                    
+                    # Confirm bulk delete
+                    if st.session_state.get('confirm_bulk_delete', False):
+                        st.warning(f"⚠️ Xác nhận xóa **{len(st.session_state.selected_users)}** user đã chọn?")
+                        col_yes, col_no = st.columns(2)
+                        with col_yes:
+                            if st.button("✅ Xác nhận xóa hàng loạt", key="confirm_bulk_yes"):
+                                with st.spinner(f"Đang xóa {len(st.session_state.selected_users)} user..."):
+                                    success, failed = bulk_delete_inbounds(
+                                        session, 
+                                        server_config['host'], 
+                                        st.session_state.selected_users
+                                    )
+                                st.success(f"✅ Đã xóa: {success} user")
+                                if failed > 0:
+                                    st.error(f"❌ Lỗi: {failed} user")
+                                st.session_state.selected_users = []
+                                st.session_state['confirm_bulk_delete'] = False
+                                time.sleep(1.5)
+                                st.rerun()
+                        with col_no:
+                            if st.button("❌ Hủy xóa hàng loạt", key="confirm_bulk_no"):
+                                st.session_state['confirm_bulk_delete'] = False
                                 st.rerun()
                 
-                with col4:
-                    if st.button("📋 Xem Link", use_container_width=True):
-                        current = next((x for x in inbounds if x['id'] == selected_id), None)
-                        if current:
-                            link = generate_link(current, vps_ip)
-                            st.text_area("Link:", link, height=100, key="view_link_area")
-                            qr_img = generate_qr(link)
-                            if qr_img:
-                                st.image(qr_img, width=200)
+                st.write("---")
                 
-                with col5:
-                    if st.button("🗑️ Xóa", use_container_width=True, type="primary"):
-                        st.session_state['confirm_delete_id'] = selected_id
-                
-                # Xác nhận xóa
-                if 'confirm_delete_id' in st.session_state and st.session_state.get('confirm_delete_id') == selected_id:
-                    st.warning("⚠️ Xác nhận xóa user này?")
-                    col_yes, col_no = st.columns(2)
-                    with col_yes:
-                        if st.button("✅ Xác nhận", key="confirm_yes"):
-                            if delete_inbound(session, server_config['host'], selected_id):
-                                st.success("✅ Đã xóa!")
-                                if 'confirm_delete_id' in st.session_state:
-                                    del st.session_state['confirm_delete_id']
-                                time.sleep(1)
-                                st.rerun()
-                    with col_no:
-                        if st.button("❌ Hủy", key="confirm_no"):
-                            if 'confirm_delete_id' in st.session_state:
-                                del st.session_state['confirm_delete_id']
-                            st.rerun()
+                # Display users with checkbox và edit
+                for idx, item in enumerate(filtered):
+                    with st.container(border=True):
+                        col_check, col_info, col_actions = st.columns([0.5, 3, 2])
+                        
+                        with col_check:
+                            # Checkbox cho từng user
+                            is_checked = item['ID'] in st.session_state.selected_users
+                            if st.checkbox("", value=is_checked, key=f"check_{item['ID']}"):
+                                if item['ID'] not in st.session_state.selected_users:
+                                    st.session_state.selected_users.append(item['ID'])
+                            else:
+                                if item['ID'] in st.session_state.selected_users:
+                                    st.session_state.selected_users.remove(item['ID'])
+                        
+                        with col_info:
+                            st.markdown(f"**{item['Status']} {item['User']}** - Port: `{item['Port']}` - {item['Protocol']}")
+                            st.caption(f"📊 Data: {item['Data']} | 📅 Hết hạn: {item['Hết hạn']}")
+                        
+                        with col_actions:
+                            col_btn1, col_btn2, col_btn3, col_btn4, col_btn5 = st.columns(5)
+                            
+                            with col_btn1:
+                                if st.button("🔄", key=f"reset_{item['ID']}", help="Reset traffic"):
+                                    if reset_traffic(session, server_config['host'], item['ID'], inbounds):
+                                        st.success("✅ Reset!")
+                                        time.sleep(0.5)
+                                        st.rerun()
+                            
+                            with col_btn2:
+                                if st.button("⏱️", key=f"extend_{item['ID']}", help="Gia hạn +30d"):
+                                    if extend_expiry(session, server_config['host'], item['ID'], 30, inbounds):
+                                        st.success("✅ Gia hạn!")
+                                        time.sleep(0.5)
+                                        st.rerun()
+                            
+                            with col_btn3:
+                                action_icon = "⏸️" if item['Raw']['enable'] else "▶️"
+                                if st.button(action_icon, key=f"toggle_{item['ID']}", help="Bật/Tắt"):
+                                    if toggle_inbound(session, server_config['host'], item['ID'], not item['Raw']['enable'], inbounds):
+                                        st.success("✅ Đổi!")
+                                        time.sleep(0.5)
+                                        st.rerun()
+                            
+                            with col_btn4:
+                                if st.button("✏️", key=f"edit_{item['ID']}", help="Sửa"):
+                                    st.session_state[f'edit_mode_{item["ID"]}'] = True
+                                    st.rerun()
+                            
+                            with col_btn5:
+                                if st.button("🗑️", key=f"del_{item['ID']}", help="Xóa"):
+                                    st.session_state[f'confirm_delete_{item["ID"]}'] = True
+                        
+                        # Edit form
+                        if st.session_state.get(f'edit_mode_{item["ID"]}', False):
+                            with st.expander("✏️ Sửa User", expanded=True):
+                                edit_form_key = f"edit_user_form_{item['ID']}_{int(time.time() * 1000)}"
+                                
+                                with st.form(key=edit_form_key):
+                                    st.info(f"🆔 Đang sửa: **{item['User']}** (ID: `{item['ID']}`)")
+                                    
+                                    # Parse current values
+                                    current = item['Raw']
+                                    current_remark = current['remark']
+                                    current_days_left = max(0, int((current['expiryTime'] - time.time() * 1000) / (86400 * 1000))) if current['expiryTime'] > 0 else 0
+                                    current_data_limit = current['total'] / (1024**3) if current['total'] > 0 else 0
+                                    
+                                    col_edit1, col_edit2 = st.columns(2)
+                                    with col_edit1:
+                                        new_remark = st.text_input("Tên khách hàng", value=current_remark)
+                                        new_days = st.number_input("Thời hạn (ngày)", min_value=0, max_value=365, value=max(current_days_left, 30))
+                                    with col_edit2:
+                                        new_data_limit = st.number_input("Data Limit (GB, 0=unlimited)", min_value=0, max_value=1000, value=int(current_data_limit), step=10)
+                                    
+                                    col_save, col_cancel = st.columns(2)
+                                    with col_save:
+                                        save_edit = st.form_submit_button("💾 Lưu thay đổi", use_container_width=True, type="primary")
+                                    with col_cancel:
+                                        cancel_edit = st.form_submit_button("❌ Hủy", use_container_width=True)
+                                    
+                                    if save_edit:
+                                        if not new_remark:
+                                            st.error("⚠️ Tên không được trống!")
+                                        else:
+                                            with st.spinner("Đang cập nhật..."):
+                                                success, msg = update_inbound(
+                                                    session,
+                                                    server_config['host'],
+                                                    item['ID'],
+                                                    inbounds,
+                                                    new_remark=new_remark,
+                                                    new_days=new_days,
+                                                    new_data_limit_gb=new_data_limit
+                                                )
+                                            
+                                            if success:
+                                                st.success(f"✅ Đã cập nhật user '{new_remark}'!")
+                                                st.session_state[f'edit_mode_{item["ID"]}'] = False
+                                                time.sleep(1)
+                                                st.rerun()
+                                            else:
+                                                st.error(f"❌ Lỗi: {msg}")
+                                    
+                                    if cancel_edit:
+                                        st.session_state[f'edit_mode_{item["ID"]}'] = False
+                                        st.rerun()
+                        
+                        # Confirm delete single user
+                        if st.session_state.get(f'confirm_delete_{item["ID"]}', False):
+                            st.warning(f"⚠️ Xác nhận xóa **{item['User']}**?")
+                            col_yes, col_no = st.columns(2)
+                            with col_yes:
+                                if st.button("✅ Xác nhận", key=f"confirm_yes_{item['ID']}"):
+                                    if delete_inbound(session, server_config['host'], item['ID']):
+                                        st.success("✅ Đã xóa!")
+                                        st.session_state[f'confirm_delete_{item["ID"]}'] = False
+                                        time.sleep(0.5)
+                                        st.rerun()
+                            with col_no:
+                                if st.button("❌ Hủy", key=f"confirm_no_{item['ID']}"):
+                                    st.session_state[f'confirm_delete_{item["ID"]}'] = False
+                                    st.rerun()
+            else:
+                st.info("🔍 Không tìm thấy user nào phù hợp.")
         else:
             st.info("ℹ️ Chưa có user nào.")
     
@@ -923,4 +1102,4 @@ elif servers and menu in ["📊 Dashboard Server", "➕ Tạo User", "👥 Quả
                     st.write(f"**{proto.upper()}:** {data['count']} user, {data['traffic']:.2f} GB")
 
 st.write("---")
-st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.0 Fixed")
+st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3 - Enhanced User Management")
