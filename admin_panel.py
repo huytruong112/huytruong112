@@ -2,27 +2,53 @@
 """
 Admin Panel for vless Configuration Management and VPS Monitoring
 Complete dashboard with all features for managing VPN service
+Version: 1.0.0
 """
 
 import os
 import json
 import time
-import psutil
-import requests
 import threading
-from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
-from functools import wraps
-import speedtest
 import logging
+from datetime import datetime, timedelta
+from functools import wraps
+
+# Flask imports
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
+
+# System monitoring
+import psutil
+
+# HTTP requests
+import requests
+
+# Speed test - with proper error handling
+SPEEDTEST_AVAILABLE = False
+try:
+    import speedtest as speedtest_module
+    SPEEDTEST_AVAILABLE = True
+except ImportError:
+    try:
+        # Try alternative import
+        from speedtest import Speedtest as speedtest_module
+        SPEEDTEST_AVAILABLE = True
+    except ImportError:
+        logging.warning("Speedtest module not available. Speed test feature will be disabled.")
+        speedtest_module = None
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
+# Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'vpnvietnam_secret_key_2025')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Configuration
 XRAY_PANEL_URL = os.environ.get('XRAY_PANEL_URL', 'http://74.81.55.39:8001')
@@ -55,6 +81,7 @@ class XrayPanelAPI:
         self.email = email
         self.password = password
         self.session = requests.Session()
+        self.session.timeout = 10
         self.session_cookie = None
         
     def login(self):
@@ -67,22 +94,28 @@ class XrayPanelAPI:
             }
             response = self.session.post(url, data=data, timeout=10)
             
-            if response.status_code == 200 and response.json().get('success'):
-                self.session_cookie = self.session.cookies.get_dict()
-                logger.info("Successfully logged in to 3X-UI panel")
-                return True
-            else:
-                logger.error(f"Login failed: {response.text}")
-                return False
-        except Exception as e:
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('success'):
+                    self.session_cookie = self.session.cookies.get_dict()
+                    logger.info("Successfully logged in to 3X-UI panel")
+                    return True
+            
+            logger.error(f"Login failed: Status {response.status_code}")
+            return False
+        except requests.exceptions.RequestException as e:
             logger.error(f"Login error: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected login error: {e}")
             return False
     
     def get_inbounds(self):
         """Get all inbound configurations"""
         try:
             if not self.session_cookie:
-                self.login()
+                if not self.login():
+                    return []
             
             url = f"{self.base_url}/panel/api/inbounds/list"
             response = self.session.post(url, timeout=10)
@@ -91,6 +124,15 @@ class XrayPanelAPI:
                 data = response.json()
                 if data.get('success'):
                     return data.get('obj', [])
+            
+            # Try to login again if failed
+            if self.login():
+                response = self.session.post(url, timeout=10)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get('success'):
+                        return data.get('obj', [])
+            
             return []
         except Exception as e:
             logger.error(f"Error getting inbounds: {e}")
@@ -100,7 +142,8 @@ class XrayPanelAPI:
         """Add new inbound configuration"""
         try:
             if not self.session_cookie:
-                self.login()
+                if not self.login():
+                    return False
             
             url = f"{self.base_url}/panel/api/inbounds/add"
             response = self.session.post(url, json=config, timeout=10)
@@ -117,7 +160,8 @@ class XrayPanelAPI:
         """Update existing inbound configuration"""
         try:
             if not self.session_cookie:
-                self.login()
+                if not self.login():
+                    return False
             
             url = f"{self.base_url}/panel/api/inbounds/update/{inbound_id}"
             response = self.session.post(url, json=config, timeout=10)
@@ -134,7 +178,8 @@ class XrayPanelAPI:
         """Delete inbound configuration"""
         try:
             if not self.session_cookie:
-                self.login()
+                if not self.login():
+                    return False
             
             url = f"{self.base_url}/panel/api/inbounds/del/{inbound_id}"
             response = self.session.post(url, timeout=10)
@@ -151,7 +196,8 @@ class XrayPanelAPI:
         """Get traffic stats for a client"""
         try:
             if not self.session_cookie:
-                self.login()
+                if not self.login():
+                    return None
             
             url = f"{self.base_url}/panel/api/inbounds/getClientTraffics/{email}"
             response = self.session.get(url, timeout=10)
@@ -169,7 +215,8 @@ class XrayPanelAPI:
         """Add client to inbound"""
         try:
             if not self.session_cookie:
-                self.login()
+                if not self.login():
+                    return False
             
             url = f"{self.base_url}/panel/api/inbounds/addClient"
             data = {
@@ -190,7 +237,8 @@ class XrayPanelAPI:
         """Get server status and statistics"""
         try:
             if not self.session_cookie:
-                self.login()
+                if not self.login():
+                    return None
             
             url = f"{self.base_url}/server/status"
             response = self.session.post(url, timeout=10)
@@ -228,17 +276,25 @@ def get_system_stats():
         
         # Network interfaces
         interfaces = []
-        for interface, addrs in psutil.net_if_addrs().items():
-            for addr in addrs:
-                if addr.family == 2:  # IPv4
-                    interfaces.append({
-                        'name': interface,
-                        'ip': addr.address
-                    })
+        try:
+            for interface, addrs in psutil.net_if_addrs().items():
+                for addr in addrs:
+                    if addr.family == 2:  # IPv4
+                        interfaces.append({
+                            'name': interface,
+                            'ip': addr.address
+                        })
+        except Exception as e:
+            logger.warning(f"Error getting network interfaces: {e}")
         
         # Uptime
-        boot_time = datetime.fromtimestamp(psutil.boot_time())
-        uptime = datetime.now() - boot_time
+        try:
+            boot_time = datetime.fromtimestamp(psutil.boot_time())
+            uptime = datetime.now() - boot_time
+            uptime_str = str(uptime).split('.')[0]
+        except Exception as e:
+            logger.warning(f"Error getting uptime: {e}")
+            uptime_str = "Unknown"
         
         stats = {
             'cpu': {
@@ -265,7 +321,7 @@ def get_system_stats():
                 'packets_recv': net_io.packets_recv,
                 'interfaces': interfaces
             },
-            'uptime': str(uptime).split('.')[0],
+            'uptime': uptime_str,
             'timestamp': time.time()
         }
         
@@ -276,19 +332,32 @@ def get_system_stats():
 
 def format_bytes(bytes_value):
     """Format bytes to human readable format"""
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if bytes_value < 1024.0:
-            return f"{bytes_value:.2f} {unit}"
-        bytes_value /= 1024.0
-    return f"{bytes_value:.2f} PB"
+    try:
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if bytes_value < 1024.0:
+                return f"{bytes_value:.2f} {unit}"
+            bytes_value /= 1024.0
+        return f"{bytes_value:.2f} PB"
+    except:
+        return "0 B"
 
 # ==================== SPEED TEST ====================
 
 def run_speed_test():
     """Run internet speed test"""
+    if not SPEEDTEST_AVAILABLE:
+        logger.warning("Speed test not available - module not installed")
+        return {
+            'error': 'Speed test module not available',
+            'download': 0,
+            'upload': 0,
+            'ping': 0,
+            'timestamp': time.time()
+        }
+    
     try:
         logger.info("Starting speed test...")
-        st = speedtest.Speedtest()
+        st = speedtest_module.Speedtest() if hasattr(speedtest_module, 'Speedtest') else speedtest_module()
         st.get_best_server()
         
         download_speed = st.download() / 1_000_000  # Convert to Mbps
@@ -300,14 +369,24 @@ def run_speed_test():
             'upload': round(upload_speed, 2),
             'ping': round(ping, 2),
             'timestamp': time.time(),
-            'server': st.results.server
+            'server': {
+                'name': st.results.server.get('name', 'Unknown'),
+                'sponsor': st.results.server.get('sponsor', 'Unknown'),
+                'country': st.results.server.get('country', 'Unknown')
+            } if hasattr(st.results, 'server') else {}
         }
         
         logger.info(f"Speed test completed: {result}")
         return result
     except Exception as e:
         logger.error(f"Speed test error: {e}")
-        return None
+        return {
+            'error': str(e),
+            'download': 0,
+            'upload': 0,
+            'ping': 0,
+            'timestamp': time.time()
+        }
 
 # ==================== ROUTES ====================
 
@@ -322,26 +401,30 @@ def index():
 def login():
     """Login page"""
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
         
-        # Check credentials (you can add more admin accounts here)
+        # Check credentials
         if email == XRAY_ADMIN_EMAIL and password == XRAY_ADMIN_PASSWORD:
             session['logged_in'] = True
             session['email'] = email
             session.permanent = True
             flash('Đăng nhập thành công!', 'success')
+            logger.info(f"User logged in: {email}")
             return redirect(url_for('dashboard'))
         else:
             flash('Email hoặc mật khẩu không đúng!', 'error')
+            logger.warning(f"Failed login attempt: {email}")
     
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
     """Logout"""
+    email = session.get('email', 'unknown')
     session.clear()
     flash('Đã đăng xuất thành công!', 'info')
+    logger.info(f"User logged out: {email}")
     return redirect(url_for('login'))
 
 @app.route('/dashboard')
@@ -354,25 +437,38 @@ def dashboard():
 @login_required
 def api_system_stats():
     """API endpoint for system statistics"""
-    stats = get_system_stats()
-    if stats:
-        with cache_lock:
-            system_stats_cache.update(stats)
-        return jsonify({'success': True, 'data': stats})
-    return jsonify({'success': False, 'error': 'Failed to get system stats'})
+    try:
+        stats = get_system_stats()
+        if stats:
+            with cache_lock:
+                system_stats_cache.update(stats)
+            return jsonify({'success': True, 'data': stats})
+        return jsonify({'success': False, 'error': 'Failed to get system stats'})
+    except Exception as e:
+        logger.error(f"Error in api_system_stats: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/speed/test', methods=['POST'])
 @login_required
 def api_speed_test():
     """API endpoint to run speed test"""
+    if not SPEEDTEST_AVAILABLE:
+        return jsonify({
+            'success': False, 
+            'error': 'Speed test module not available. Install with: pip3 install speedtest-cli'
+        })
+    
     def run_test_async():
-        result = run_speed_test()
-        if result:
-            with cache_lock:
-                speed_test_cache.update(result)
+        try:
+            result = run_speed_test()
+            if result:
+                with cache_lock:
+                    speed_test_cache.update(result)
+        except Exception as e:
+            logger.error(f"Async speed test error: {e}")
     
     # Run speed test in background thread
-    thread = threading.Thread(target=run_test_async)
+    thread = threading.Thread(target=run_test_async, daemon=True)
     thread.start()
     
     return jsonify({'success': True, 'message': 'Speed test started'})
@@ -381,10 +477,14 @@ def api_speed_test():
 @login_required
 def api_speed_result():
     """API endpoint to get speed test result"""
-    with cache_lock:
-        if speed_test_cache:
-            return jsonify({'success': True, 'data': speed_test_cache})
-    return jsonify({'success': False, 'message': 'No speed test data available'})
+    try:
+        with cache_lock:
+            if speed_test_cache:
+                return jsonify({'success': True, 'data': speed_test_cache})
+        return jsonify({'success': False, 'message': 'No speed test data available'})
+    except Exception as e:
+        logger.error(f"Error in api_speed_result: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/configs')
 @login_required
@@ -396,8 +496,12 @@ def configs():
 @login_required
 def api_configs_list():
     """API endpoint to list all configurations"""
-    inbounds = xray_api.get_inbounds()
-    return jsonify({'success': True, 'data': inbounds})
+    try:
+        inbounds = xray_api.get_inbounds()
+        return jsonify({'success': True, 'data': inbounds})
+    except Exception as e:
+        logger.error(f"Error listing configs: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/configs/add', methods=['POST'])
 @login_required
@@ -409,7 +513,7 @@ def api_configs_add():
         # Create vless inbound configuration
         config = {
             'enable': True,
-            'port': data.get('port'),
+            'port': int(data.get('port', 443)),
             'protocol': 'vless',
             'settings': json.dumps({
                 'clients': [],
@@ -434,6 +538,7 @@ def api_configs_add():
         
         success = xray_api.add_inbound(config)
         if success:
+            logger.info(f"Config added: {config['remark']}")
             return jsonify({'success': True, 'message': 'Configuration added successfully'})
         return jsonify({'success': False, 'error': 'Failed to add configuration'})
     except Exception as e:
@@ -449,7 +554,7 @@ def api_configs_update(config_id):
         
         config = {
             'enable': data.get('enable', True),
-            'port': data.get('port'),
+            'port': int(data.get('port', 443)),
             'protocol': 'vless',
             'settings': json.dumps({
                 'clients': data.get('clients', []),
@@ -459,11 +564,12 @@ def api_configs_update(config_id):
                 'network': data.get('network', 'tcp'),
                 'security': data.get('security', 'none')
             }),
-            'remark': data.get('remark')
+            'remark': data.get('remark', '')
         }
         
         success = xray_api.update_inbound(config_id, config)
         if success:
+            logger.info(f"Config updated: {config_id}")
             return jsonify({'success': True, 'message': 'Configuration updated successfully'})
         return jsonify({'success': False, 'error': 'Failed to update configuration'})
     except Exception as e:
@@ -477,6 +583,7 @@ def api_configs_delete(config_id):
     try:
         success = xray_api.delete_inbound(config_id)
         if success:
+            logger.info(f"Config deleted: {config_id}")
             return jsonify({'success': True, 'message': 'Configuration deleted successfully'})
         return jsonify({'success': False, 'error': 'Failed to delete configuration'})
     except Exception as e:
@@ -495,15 +602,15 @@ def api_users_add():
     """API endpoint to add new user/client"""
     try:
         data = request.json
-        inbound_id = data.get('inbound_id')
+        inbound_id = int(data.get('inbound_id'))
         
         import uuid
         client_config = {
             'id': str(uuid.uuid4()),
-            'email': data.get('email'),
-            'limitIp': data.get('limit_ip', 0),
-            'totalGB': data.get('total_gb', 0),
-            'expiryTime': data.get('expiry_time', 0),
+            'email': data.get('email', ''),
+            'limitIp': int(data.get('limit_ip', 0)),
+            'totalGB': int(data.get('total_gb', 0)),
+            'expiryTime': int(data.get('expiry_time', 0)),
             'enable': True,
             'tgId': '',
             'subId': ''
@@ -511,6 +618,7 @@ def api_users_add():
         
         success = xray_api.add_client(inbound_id, client_config)
         if success:
+            logger.info(f"User added: {client_config['email']}")
             return jsonify({'success': True, 'message': 'User added successfully'})
         return jsonify({'success': False, 'error': 'Failed to add user'})
     except Exception as e:
@@ -521,10 +629,14 @@ def api_users_add():
 @login_required
 def api_server_status():
     """API endpoint to get server status from 3X-UI"""
-    status = xray_api.get_server_status()
-    if status:
-        return jsonify({'success': True, 'data': status})
-    return jsonify({'success': False, 'error': 'Failed to get server status'})
+    try:
+        status = xray_api.get_server_status()
+        if status:
+            return jsonify({'success': True, 'data': status})
+        return jsonify({'success': False, 'error': 'Failed to get server status'})
+    except Exception as e:
+        logger.error(f"Error getting server status: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/monitoring')
 @login_required
@@ -538,10 +650,24 @@ def settings():
     """Settings page"""
     return render_template('settings.html')
 
+# ==================== ERROR HANDLERS ====================
+
+@app.errorhandler(404)
+def not_found(error):
+    """404 error handler"""
+    return render_template('login.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """500 error handler"""
+    logger.error(f"Internal server error: {error}")
+    return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
 # ==================== BACKGROUND TASKS ====================
 
 def background_monitoring():
     """Background task to continuously monitor system"""
+    logger.info("Background monitoring started")
     while True:
         try:
             stats = get_system_stats()
@@ -556,15 +682,37 @@ def background_monitoring():
 # ==================== MAIN ====================
 
 if __name__ == '__main__':
+    # Print startup information
+    print("=" * 60)
+    print("  VPN Vietnam - Admin Panel")
+    print("=" * 60)
+    print(f"Python Version: {os.sys.version}")
+    print(f"Flask Version: {Flask.__version__}")
+    print(f"3X-UI Panel: {XRAY_PANEL_URL}")
+    print(f"Speed Test Available: {SPEEDTEST_AVAILABLE}")
+    print("=" * 60)
+    
     # Start background monitoring thread
     monitor_thread = threading.Thread(target=background_monitoring, daemon=True)
     monitor_thread.start()
+    logger.info("Background monitoring thread started")
     
-    # Start Flask app
+    # Get configuration
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'False').lower() == 'true'
+    host = os.environ.get('HOST', '0.0.0.0')
     
-    logger.info(f"Starting admin panel on port {port}")
-    logger.info(f"3X-UI Panel URL: {XRAY_PANEL_URL}")
+    # Start Flask app
+    logger.info(f"Starting admin panel on {host}:{port}")
+    print(f"\n🚀 Server starting on http://{host}:{port}")
+    print(f"📧 Login: {XRAY_ADMIN_EMAIL}")
+    print("=" * 60)
     
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    try:
+        app.run(host=host, port=port, debug=debug, threaded=True)
+    except KeyboardInterrupt:
+        logger.info("Admin panel stopped by user")
+        print("\n\n👋 Admin panel stopped. Goodbye!")
+    except Exception as e:
+        logger.error(f"Failed to start server: {e}")
+        print(f"\n❌ Error: {e}")
