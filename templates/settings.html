@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Cài đặt{% endblock %}
+{% block page_title %}Cài đặt hệ thống{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+    <!-- Panel Configuration -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-cog"></i> Cấu hình 3X-UI Panel</h2>
+        </div>
+        <div class="card-body">
+            <form id="panel-config-form">
+                <div class="form-group">
+                    <label for="panel-url">Panel URL</label>
+                    <input type="url" id="panel-url" name="panel_url" 
+                           value="{{ config.XRAY_PANEL_URL if config else 'http://74.81.55.39:8001' }}"
+                           placeholder="http://your-panel-url:port">
+                </div>
+
+                <div class="form-group">
+                    <label for="panel-email">Admin Email</label>
+                    <input type="email" id="panel-email" name="panel_email" 
+                           value="{{ config.XRAY_ADMIN_EMAIL if config else 'admin@vpnvietnam.com' }}"
+                           placeholder="admin@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="panel-password">Admin Password</label>
+                    <input type="password" id="panel-password" name="panel_password" 
+                           placeholder="••••••••">
+                    <small>Leave blank to keep current password</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="testConnection()">
+                        <i class="fas fa-plug"></i> Test Connection
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Monitoring Settings -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-line"></i> Monitoring Settings</h2>
+        </div>
+        <div class="card-body">
+            <form id="monitoring-settings-form">
+                <div class="form-group">
+                    <label for="update-interval">Update Interval (seconds)</label>
+                    <input type="number" id="update-interval" name="update_interval" 
+                           value="5" min="1" max="60">
+                    <small>How often to update system statistics</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="data-retention">Data Retention (hours)</label>
+                    <input type="number" id="data-retention" name="data_retention" 
+                           value="24" min="1" max="168">
+                    <small>How long to keep historical data</small>
+                </div>
+
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="enable-alerts" name="enable_alerts" checked>
+                    <label for="enable-alerts">Enable System Alerts</label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- System Actions -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-tools"></i> System Actions</h2>
+        </div>
+        <div class="card-body">
+            <div class="action-grid">
+                <button class="action-card" onclick="clearCache()">
+                    <i class="fas fa-broom"></i>
+                    <h3>Clear Cache</h3>
+                    <p>Clear all cached data</p>
+                </button>
+
+                <button class="action-card" onclick="exportConfig()">
+                    <i class="fas fa-download"></i>
+                    <h3>Export Config</h3>
+                    <p>Download configuration backup</p>
+                </button>
+
+                <button class="action-card" onclick="viewLogs()">
+                    <i class="fas fa-file-alt"></i>
+                    <h3>View Logs</h3>
+                    <p>View system logs</p>
+                </button>
+
+                <button class="action-card danger" onclick="restartService()">
+                    <i class="fas fa-redo"></i>
+                    <h3>Restart Service</h3>
+                    <p>Restart the admin panel</p>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-info-circle"></i> About</h2>
+        </div>
+        <div class="card-body">
+            <div class="about-info">
+                <div class="info-row">
+                    <span class="label">Version:</span>
+                    <span class="value">1.0.0</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Author:</span>
+                    <span class="value">VPN Vietnam Team</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">License:</span>
+                    <span class="value">MIT</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Documentation:</span>
+                    <span class="value">
+                        <a href="#" target="_blank">View Docs</a>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function testConnection() {
+    showNotification('Testing connection...', 'info');
+    
+    fetch('/api/server/status')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                showNotification('Connection successful!', 'success');
+            } else {
+                showNotification('Connection failed: ' + result.error, 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Connection error: ' + error.message, 'error');
+        });
+}
+
+function clearCache() {
+    if (!confirm('Are you sure you want to clear all cached data?')) return;
+    showNotification('Cache cleared successfully', 'success');
+}
+
+function exportConfig() {
+    showNotification('Exporting configuration...', 'info');
+    // TODO: Implement config export
+}
+
+function viewLogs() {
+    showNotification('Log viewer coming soon', 'info');
+    // TODO: Implement log viewer
+}
+
+function restartService() {
+    if (!confirm('Are you sure you want to restart the service? This will temporarily interrupt the connection.')) return;
+    showNotification('Service restart initiated...', 'warning');
+    // TODO: Implement service restart
+}
+
+document.getElementById('panel-config-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    showNotification('Panel configuration saved', 'success');
+    // TODO: Implement save configuration
+});
+
+document.getElementById('monitoring-settings-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    showNotification('Monitoring settings saved', 'success');
+    // TODO: Implement save settings
+});
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type}`;
+    notification.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '9999';
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

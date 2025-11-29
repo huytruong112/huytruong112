@@ -1,0 +1,326 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard Tổng Quan{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon cpu">
+                <i class="fas fa-microchip"></i>
+            </div>
+            <div class="stat-details">
+                <h3>CPU Usage</h3>
+                <div class="stat-value" id="cpu-usage">--</div>
+                <div class="stat-label">Processor</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon memory">
+                <i class="fas fa-memory"></i>
+            </div>
+            <div class="stat-details">
+                <h3>RAM Usage</h3>
+                <div class="stat-value" id="ram-usage">--</div>
+                <div class="stat-label">Memory</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon disk">
+                <i class="fas fa-hdd"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Disk Usage</h3>
+                <div class="stat-value" id="disk-usage">--</div>
+                <div class="stat-label">Storage</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon network">
+                <i class="fas fa-network-wired"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Network</h3>
+                <div class="stat-value" id="network-usage">--</div>
+                <div class="stat-label">Traffic</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Speed Test Section -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-tachometer-alt"></i> Kiểm tra tốc độ Internet</h2>
+            <button class="btn btn-primary" onclick="runSpeedTest()" id="speed-test-btn">
+                <i class="fas fa-play"></i> Chạy Speed Test
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="speed-test-results" id="speed-test-results">
+                <div class="speed-metric">
+                    <div class="speed-icon download">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="speed-info">
+                        <div class="speed-label">Download</div>
+                        <div class="speed-value" id="download-speed">-- Mbps</div>
+                    </div>
+                </div>
+                <div class="speed-metric">
+                    <div class="speed-icon upload">
+                        <i class="fas fa-upload"></i>
+                    </div>
+                    <div class="speed-info">
+                        <div class="speed-label">Upload</div>
+                        <div class="speed-value" id="upload-speed">-- Mbps</div>
+                    </div>
+                </div>
+                <div class="speed-metric">
+                    <div class="speed-icon ping">
+                        <i class="fas fa-signal"></i>
+                    </div>
+                    <div class="speed-info">
+                        <div class="speed-label">Ping</div>
+                        <div class="speed-value" id="ping-value">-- ms</div>
+                    </div>
+                </div>
+            </div>
+            <div class="speed-test-info" id="speed-test-info"></div>
+        </div>
+    </div>
+
+    <!-- System Information -->
+    <div class="grid-2col">
+        <div class="section-card">
+            <div class="card-header">
+                <h2><i class="fas fa-info-circle"></i> Thông tin hệ thống</h2>
+            </div>
+            <div class="card-body">
+                <div class="info-list">
+                    <div class="info-item">
+                        <span class="info-label">CPU Cores:</span>
+                        <span class="info-value" id="cpu-cores">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">CPU Frequency:</span>
+                        <span class="info-value" id="cpu-freq">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Total RAM:</span>
+                        <span class="info-value" id="total-ram">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Total Disk:</span>
+                        <span class="info-value" id="total-disk">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Uptime:</span>
+                        <span class="info-value" id="uptime">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="card-header">
+                <h2><i class="fas fa-ethernet"></i> Network Interfaces</h2>
+            </div>
+            <div class="card-body">
+                <div class="info-list" id="network-interfaces">
+                    <div class="info-item">
+                        <span class="info-label">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-bolt"></i> Thao tác nhanh</h2>
+        </div>
+        <div class="card-body">
+            <div class="quick-actions">
+                <a href="{{ url_for('configs') }}" class="action-btn">
+                    <i class="fas fa-plus"></i>
+                    <span>Tạo cấu hình vless mới</span>
+                </a>
+                <a href="{{ url_for('users') }}" class="action-btn">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Thêm User mới</span>
+                </a>
+                <a href="{{ url_for('monitoring') }}" class="action-btn">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Xem chi tiết Monitoring</span>
+                </a>
+                <button class="action-btn" onclick="refreshAll()">
+                    <i class="fas fa-sync"></i>
+                    <span>Làm mới tất cả</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update system stats every 5 seconds
+let updateInterval;
+
+function updateSystemStats() {
+    fetch('/api/system/stats')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const data = result.data;
+                
+                // Update CPU
+                document.getElementById('cpu-usage').textContent = data.cpu.percent.toFixed(1) + '%';
+                document.getElementById('cpu-cores').textContent = data.cpu.count + ' cores';
+                document.getElementById('cpu-freq').textContent = (data.cpu.frequency / 1000).toFixed(2) + ' GHz';
+                
+                // Update RAM
+                document.getElementById('ram-usage').textContent = data.memory.percent.toFixed(1) + '%';
+                document.getElementById('total-ram').textContent = formatBytes(data.memory.total);
+                
+                // Update Disk
+                document.getElementById('disk-usage').textContent = data.disk.percent.toFixed(1) + '%';
+                document.getElementById('total-disk').textContent = formatBytes(data.disk.total);
+                
+                // Update Network
+                const totalTraffic = data.network.bytes_sent + data.network.bytes_recv;
+                document.getElementById('network-usage').textContent = formatBytes(totalTraffic);
+                
+                // Update Uptime
+                document.getElementById('uptime').textContent = data.uptime;
+                
+                // Update Network Interfaces
+                const interfacesHtml = data.network.interfaces.map(iface => `
+                    <div class="info-item">
+                        <span class="info-label">${iface.name}:</span>
+                        <span class="info-value">${iface.ip}</span>
+                    </div>
+                `).join('');
+                document.getElementById('network-interfaces').innerHTML = interfacesHtml;
+            }
+        })
+        .catch(error => console.error('Error updating stats:', error));
+}
+
+function runSpeedTest() {
+    const btn = document.getElementById('speed-test-btn');
+    const info = document.getElementById('speed-test-info');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang kiểm tra...';
+    info.innerHTML = '<div class="alert alert-info">Speed test đang chạy, vui lòng đợi...</div>';
+    
+    fetch('/api/speed/test', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Poll for results
+            checkSpeedTestResults();
+        }
+    })
+    .catch(error => {
+        console.error('Error starting speed test:', error);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Chạy Speed Test';
+        info.innerHTML = '<div class="alert alert-error">Lỗi khi chạy speed test</div>';
+    });
+}
+
+function checkSpeedTestResults() {
+    const checkInterval = setInterval(() => {
+        fetch('/api/speed/result')
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    clearInterval(checkInterval);
+                    updateSpeedTestUI(result.data);
+                }
+            });
+    }, 2000);
+    
+    // Stop checking after 2 minutes
+    setTimeout(() => {
+        clearInterval(checkInterval);
+        const btn = document.getElementById('speed-test-btn');
+        const info = document.getElementById('speed-test-info');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Chạy Speed Test';
+        info.innerHTML = '<div class="alert alert-warning">Speed test timeout</div>';
+    }, 120000);
+}
+
+function updateSpeedTestUI(data) {
+    document.getElementById('download-speed').textContent = data.download + ' Mbps';
+    document.getElementById('upload-speed').textContent = data.upload + ' Mbps';
+    document.getElementById('ping-value').textContent = data.ping + ' ms';
+    
+    const btn = document.getElementById('speed-test-btn');
+    const info = document.getElementById('speed-test-info');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-play"></i> Chạy Speed Test';
+    
+    const date = new Date(data.timestamp * 1000);
+    info.innerHTML = `<div class="alert alert-success">
+        Speed test hoàn tất lúc ${date.toLocaleTimeString('vi-VN')}
+        ${data.server ? ` - Server: ${data.server.sponsor}, ${data.server.name}` : ''}
+    </div>`;
+}
+
+function formatBytes(bytes) {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+    }
+    
+    return size.toFixed(2) + ' ' + units[unitIndex];
+}
+
+function refreshAll() {
+    updateSystemStats();
+    showNotification('Đã làm mới tất cả dữ liệu', 'success');
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type}`;
+    notification.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '9999';
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Start updating stats
+updateSystemStats();
+updateInterval = setInterval(updateSystemStats, 5000);
+
+// Stop interval when leaving page
+window.addEventListener('beforeunload', () => {
+    clearInterval(updateInterval);
+});
+</script>
+{% endblock %}

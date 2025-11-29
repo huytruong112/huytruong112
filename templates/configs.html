@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}Cấu hình vless{% endblock %}
+{% block page_title %}Quản lý cấu hình vless{% endblock %}
+
+{% block content %}
+<div class="configs-page">
+    <!-- Header Actions -->
+    <div class="page-actions">
+        <button class="btn btn-primary" onclick="showAddConfigModal()">
+            <i class="fas fa-plus"></i> Thêm cấu hình mới
+        </button>
+        <button class="btn btn-secondary" onclick="refreshConfigs()">
+            <i class="fas fa-sync"></i> Làm mới
+        </button>
+    </div>
+
+    <!-- Configs Table -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-list"></i> Danh sách cấu hình</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="data-table" id="configs-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Remark</th>
+                            <th>Port</th>
+                            <th>Protocol</th>
+                            <th>Network</th>
+                            <th>Trạng thái</th>
+                            <th>Clients</th>
+                            <th>Traffic</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="configs-tbody">
+                        <tr>
+                            <td colspan="9" class="text-center">
+                                <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Config Modal -->
+<div id="addConfigModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-plus"></i> Thêm cấu hình vless mới</h2>
+            <button class="close-btn" onclick="closeAddConfigModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addConfigForm">
+                <div class="form-group">
+                    <label for="config-remark">Remark (Tên cấu hình)</label>
+                    <input type="text" id="config-remark" name="remark" required 
+                           placeholder="Ví dụ: vless-server-01">
+                </div>
+
+                <div class="form-group">
+                    <label for="config-port">Port</label>
+                    <input type="number" id="config-port" name="port" required 
+                           placeholder="Ví dụ: 443" min="1" max="65535">
+                </div>
+
+                <div class="form-group">
+                    <label for="config-network">Network</label>
+                    <select id="config-network" name="network">
+                        <option value="tcp">TCP</option>
+                        <option value="ws">WebSocket</option>
+                        <option value="grpc">gRPC</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="ws-path-group" style="display: none;">
+                    <label for="config-ws-path">WebSocket Path</label>
+                    <input type="text" id="config-ws-path" name="ws_path" 
+                           placeholder="Ví dụ: /ray">
+                </div>
+
+                <div class="form-group">
+                    <label for="config-security">Security</label>
+                    <select id="config-security" name="security">
+                        <option value="none">None</option>
+                        <option value="tls">TLS</option>
+                        <option value="reality">Reality</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddConfigModal()">
+                        Hủy
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Lưu cấu hình
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Config Modal -->
+<div id="viewConfigModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-eye"></i> Chi tiết cấu hình</h2>
+            <button class="close-btn" onclick="closeViewConfigModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="config-details">
+            <!-- Config details will be inserted here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentConfigs = [];
+
+function refreshConfigs() {
+    fetch('/api/configs/list')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                currentConfigs = result.data;
+                displayConfigs(result.data);
+            } else {
+                showNotification('Lỗi khi tải danh sách cấu hình', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading configs:', error);
+            showNotification('Lỗi kết nối đến server', 'error');
+        });
+}
+
+function displayConfigs(configs) {
+    const tbody = document.getElementById('configs-tbody');
+    
+    if (configs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center">
+                    <i class="fas fa-inbox"></i> Chưa có cấu hình nào
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = configs.map(config => {
+        const settings = typeof config.settings === 'string' ? JSON.parse(config.settings) : config.settings;
+        const streamSettings = typeof config.streamSettings === 'string' ? JSON.parse(config.streamSettings) : config.streamSettings;
+        const clientCount = settings.clients ? settings.clients.length : 0;
+        
+        return `
+            <tr>
+                <td>${config.id}</td>
+                <td><strong>${config.remark || 'N/A'}</strong></td>
+                <td>${config.port}</td>
+                <td><span class="badge badge-protocol">${config.protocol}</span></td>
+                <td>${streamSettings.network || 'tcp'}</td>
+                <td>
+                    ${config.enable ? 
+                        '<span class="badge badge-success">Active</span>' : 
+                        '<span class="badge badge-danger">Disabled</span>'}
+                </td>
+                <td>${clientCount}</td>
+                <td>
+                    <div class="traffic-info">
+                        <div>↓ ${formatBytes(config.down || 0)}</div>
+                        <div>↑ ${formatBytes(config.up || 0)}</div>
+                    </div>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-icon" onclick="viewConfig(${config.id})" title="Xem chi tiết">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-icon" onclick="toggleConfig(${config.id}, ${!config.enable})" 
+                                title="${config.enable ? 'Tắt' : 'Bật'}">
+                            <i class="fas fa-power-off"></i>
+                        </button>
+                        <button class="btn-icon danger" onclick="deleteConfig(${config.id})" title="Xóa">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function showAddConfigModal() {
+    document.getElementById('addConfigModal').style.display = 'flex';
+}
+
+function closeAddConfigModal() {
+    document.getElementById('addConfigModal').style.display = 'none';
+    document.getElementById('addConfigForm').reset();
+}
+
+function viewConfig(configId) {
+    const config = currentConfigs.find(c => c.id === configId);
+    if (!config) return;
+    
+    const settings = typeof config.settings === 'string' ? JSON.parse(config.settings) : config.settings;
+    const streamSettings = typeof config.streamSettings === 'string' ? JSON.parse(config.streamSettings) : config.streamSettings;
+    
+    const detailsHtml = `
+        <div class="config-details-view">
+            <div class="detail-group">
+                <label>ID:</label>
+                <span>${config.id}</span>
+            </div>
+            <div class="detail-group">
+                <label>Remark:</label>
+                <span>${config.remark}</span>
+            </div>
+            <div class="detail-group">
+                <label>Port:</label>
+                <span>${config.port}</span>
+            </div>
+            <div class="detail-group">
+                <label>Protocol:</label>
+                <span>${config.protocol}</span>
+            </div>
+            <div class="detail-group">
+                <label>Network:</label>
+                <span>${streamSettings.network || 'tcp'}</span>
+            </div>
+            <div class="detail-group">
+                <label>Security:</label>
+                <span>${streamSettings.security || 'none'}</span>
+            </div>
+            <div class="detail-group">
+                <label>Settings:</label>
+                <pre>${JSON.stringify(settings, null, 2)}</pre>
+            </div>
+            <div class="detail-group">
+                <label>Stream Settings:</label>
+                <pre>${JSON.stringify(streamSettings, null, 2)}</pre>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('config-details').innerHTML = detailsHtml;
+    document.getElementById('viewConfigModal').style.display = 'flex';
+}
+
+function closeViewConfigModal() {
+    document.getElementById('viewConfigModal').style.display = 'none';
+}
+
+function deleteConfig(configId) {
+    if (!confirm('Bạn có chắc chắn muốn xóa cấu hình này?')) return;
+    
+    fetch(`/api/configs/delete/${configId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification('Đã xóa cấu hình thành công', 'success');
+            refreshConfigs();
+        } else {
+            showNotification('Lỗi: ' + result.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting config:', error);
+        showNotification('Lỗi khi xóa cấu hình', 'error');
+    });
+}
+
+function toggleConfig(configId, enable) {
+    const config = currentConfigs.find(c => c.id === configId);
+    if (!config) return;
+    
+    config.enable = enable;
+    
+    fetch(`/api/configs/update/${configId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification(`Đã ${enable ? 'bật' : 'tắt'} cấu hình`, 'success');
+            refreshConfigs();
+        } else {
+            showNotification('Lỗi: ' + result.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error toggling config:', error);
+        showNotification('Lỗi khi cập nhật cấu hình', 'error');
+    });
+}
+
+// Handle network change to show/hide WebSocket path
+document.getElementById('config-network').addEventListener('change', function() {
+    const wsPathGroup = document.getElementById('ws-path-group');
+    wsPathGroup.style.display = this.value === 'ws' ? 'block' : 'none';
+});
+
+// Handle form submission
+document.getElementById('addConfigForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        remark: document.getElementById('config-remark').value,
+        port: parseInt(document.getElementById('config-port').value),
+        network: document.getElementById('config-network').value,
+        security: document.getElementById('config-security').value,
+        ws_path: document.getElementById('config-ws-path').value || '/'
+    };
+    
+    fetch('/api/configs/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification('Đã thêm cấu hình thành công', 'success');
+            closeAddConfigModal();
+            refreshConfigs();
+        } else {
+            showNotification('Lỗi: ' + result.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding config:', error);
+        showNotification('Lỗi khi thêm cấu hình', 'error');
+    });
+});
+
+function formatBytes(bytes) {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+    }
+    
+    return size.toFixed(2) + ' ' + units[unitIndex];
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type}`;
+    notification.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '9999';
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Load configs on page load
+refreshConfigs();
+</script>
+{% endblock %}
