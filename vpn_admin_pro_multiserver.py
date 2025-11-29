@@ -283,7 +283,7 @@ with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/9664/9664780.png", width=100)
     st.title("🌐 Multi-Server Admin")
     
-    # Load danh sách server
+    # FIX: Force reload fresh data mỗi lần render
     servers = load_servers()
     
     # FIX: Kiểm tra servers là dict
@@ -294,18 +294,20 @@ with st.sidebar:
     
     if not servers:
         st.warning("⚠️ Chưa có server nào. Vào menu Quản lý Server để thêm!")
-        menu = st.radio("Menu", ["🖥️ Quản lý Server"])
+        menu = st.radio("Menu", ["🖥️ Quản Lý Server"])
     else:
+        # FIX: Hiển thị số lượng server
+        st.success(f"✅ {len(servers)} server")
+        
         # Chọn server
         server_options = {f"{s['name']} ({s['host']})": sid for sid, s in servers.items()}
-        selected_server_name = st.selectbox("📡 Chọn Server", list(server_options.keys()))
-        selected_server_id = server_options[selected_server_name]
         
-        # Lưu vào session state
-        if 'current_server_id' not in st.session_state:
-            st.session_state.current_server_id = selected_server_id
-        else:
-            st.session_state.current_server_id = selected_server_id
+        # FIX: Default selection
+        if 'current_server_id' not in st.session_state or st.session_state.current_server_id not in servers:
+            st.session_state.current_server_id = list(servers.keys())[0]
+        
+        selected_server_name = st.selectbox("📡 Chọn Server", list(server_options.keys()))
+        st.session_state.current_server_id = server_options[selected_server_name]
         
         st.write("---")
         menu = st.radio("Menu", [
@@ -322,6 +324,9 @@ with st.sidebar:
     st.caption(f"🕒 {datetime.now().strftime('%H:%M:%S - %d/%m/%Y')}")
     
     if st.button("🔄 Làm mới", use_container_width=True):
+        # FIX: Clear cache khi refresh
+        if 'current_server_id' in st.session_state:
+            del st.session_state['current_server_id']
         st.rerun()
 
 # --- MENU: TỔNG QUAN TOÀN HỆ THỐNG ---
@@ -410,11 +415,16 @@ elif menu == "🖥️ Quản lý Server":
     tab1, tab2 = st.tabs(["📋 Danh sách Server", "➕ Thêm Server Mới"])
     
     with tab1:
+        # FIX: Force reload fresh data
         servers = load_servers()
         
         if not isinstance(servers, dict) or not servers:
             st.info("ℹ️ Chưa có server nào. Thêm server mới ở tab bên cạnh!")
         else:
+            # FIX: Hiển thị số lượng server
+            st.success(f"✅ Đang quản lý **{len(servers)}** server")
+            st.write("---")
+            
             for sid, sconfig in servers.items():
                 with st.container(border=True):
                     col1, col2, col3 = st.columns([3, 1, 1])
@@ -440,6 +450,9 @@ elif menu == "🖥️ Quản lý Server":
                         if st.button("🗑️ Xóa", key=f"del_{sid}", type="primary"):
                             if delete_server(sid):
                                 st.success(f"✅ Đã xóa server {sconfig['name']}!")
+                                # FIX: Clear cache khi xóa
+                                if 'current_server_id' in st.session_state:
+                                    del st.session_state['current_server_id']
                                 time.sleep(1)
                                 st.rerun()
                             else:
@@ -448,14 +461,21 @@ elif menu == "🖥️ Quản lý Server":
     with tab2:
         st.subheader("➕ Thêm Server mới")
         
-        with st.form("add_server_form"):
+        # FIX: Dùng unique key và clear_on_submit để reset form
+        form_key = f"add_server_form_{int(time.time() * 1000)}"
+        
+        with st.form(key=form_key, clear_on_submit=True):
             new_name = st.text_input("Tên Server", placeholder="VPS Singapore 01")
             new_host = st.text_input("HOST (URL đầy đủ)", placeholder="http://123.45.67.89:8001")
             new_username = st.text_input("Username", placeholder="admin")
             new_password = st.text_input("Password", type="password")
             new_notes = st.text_area("Ghi chú (optional)", placeholder="Server cho khách VIP...")
             
-            submitted = st.form_submit_button("✅ Thêm Server", use_container_width=True, type="primary")
+            col_submit, col_cancel = st.columns(2)
+            with col_submit:
+                submitted = st.form_submit_button("✅ Thêm Server", use_container_width=True, type="primary")
+            with col_cancel:
+                canceled = st.form_submit_button("❌ Hủy", use_container_width=True)
             
             if submitted:
                 if not all([new_name, new_host, new_username, new_password]):
@@ -468,13 +488,22 @@ elif menu == "🖥️ Quản lý Server":
                             server_id = add_server(new_name, new_host, new_username, new_password, new_notes)
                             if server_id:
                                 st.balloons()
-                                st.success(f"✅ Đã thêm server {new_name} thành công!")
+                                st.success(f"✅ Đã thêm server '{new_name}' thành công!")
+                                st.info("📋 Chuyển sang tab 'Danh sách Server' để xem...")
+                                
+                                # FIX: Clear cache và reload
+                                if 'current_server_id' in st.session_state:
+                                    del st.session_state['current_server_id']
+                                
                                 time.sleep(2)
                                 st.rerun()
                             else:
                                 st.error("❌ Lỗi khi lưu server!")
                         else:
                             st.error("❌ Không thể kết nối! Kiểm tra lại HOST, USERNAME, PASSWORD.")
+            
+            if canceled:
+                st.info("Đã hủy thao tác.")
 
 # --- CÁC MENU KHÁC ---
 elif servers and menu in ["📊 Dashboard Server", "➕ Tạo User", "👥 Quản Lý User", "📋 Chi Tiết User", "⚙️ Hệ Thống"]:
