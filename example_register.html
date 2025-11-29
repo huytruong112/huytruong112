@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký dịch vụ VPN</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .pricing-tag {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+            margin-left: 5px;
+        }
+        
+        button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 6px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .success {
+            background-color: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            border: 2px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .loading {
+            background-color: #fff3cd;
+            border: 2px solid #ffeeba;
+            color: #856404;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 80px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+        }
+        
+        .info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .connection-details {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        .connection-details p {
+            margin: 8px 0;
+        }
+        
+        .copy-btn {
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Đăng ký VPN</h1>
+        <p class="subtitle">Tạo tài khoản và nhận cấu hình VPN ngay lập tức</p>
+        
+        <form id="registerForm">
+            <div class="form-group">
+                <label>📧 Email *</label>
+                <input type="email" id="email" required placeholder="your@email.com">
+            </div>
+            
+            <div class="form-group">
+                <label>👤 Tên đăng nhập *</label>
+                <input type="text" id="username" required placeholder="username" pattern="[a-zA-Z0-9_]+" title="Chỉ cho phép chữ cái, số và dấu gạch dưới">
+            </div>
+            
+            <div class="form-group">
+                <label>🔒 Mật khẩu *</label>
+                <input type="password" id="password" required minlength="6" placeholder="Tối thiểu 6 ký tự">
+            </div>
+            
+            <div class="form-group">
+                <label>📝 Họ tên</label>
+                <input type="text" id="full_name" placeholder="Nguyễn Văn A">
+            </div>
+            
+            <div class="form-group">
+                <label>📱 Số điện thoại</label>
+                <input type="tel" id="phone" placeholder="0123456789">
+            </div>
+            
+            <div class="form-group">
+                <label>💾 Gói dung lượng</label>
+                <select id="traffic_limit_gb">
+                    <option value="30">30 GB</option>
+                    <option value="50" selected>50 GB</option>
+                    <option value="100">100 GB</option>
+                    <option value="200">200 GB</option>
+                    <option value="500">500 GB</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>⏰ Thời hạn sử dụng</label>
+                <select id="service_duration_days">
+                    <option value="7">7 ngày (thử nghiệm)</option>
+                    <option value="30" selected>1 tháng</option>
+                    <option value="60">2 tháng</option>
+                    <option value="90">3 tháng</option>
+                    <option value="180">6 tháng</option>
+                    <option value="365">1 năm</option>
+                </select>
+            </div>
+            
+            <button type="submit" id="submitBtn">Đăng ký ngay</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+    
+    <script>
+        // CẤU HÌNH: Thay đổi URL API của bạn ở đây
+        const API_URL = 'http://localhost:8000';
+        
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('result');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // Disable form
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Đang xử lý...';
+            
+            resultDiv.className = 'result loading';
+            resultDiv.innerHTML = '<p>⏳ Đang tạo tài khoản và cấu hình VPN...</p>';
+            
+            const data = {
+                email: document.getElementById('email').value,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                full_name: document.getElementById('full_name').value || null,
+                phone: document.getElementById('phone').value || null,
+                traffic_limit_gb: parseInt(document.getElementById('traffic_limit_gb').value),
+                service_duration_days: parseInt(document.getElementById('service_duration_days').value)
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    
+                    const expiryDate = new Date(result.vpn_config.expires_at);
+                    const connectionUrl = result.vpn_config.connection_url || 'Đang cập nhật...';
+                    
+                    resultDiv.innerHTML = `
+                        <h2>✅ Đăng ký thành công!</h2>
+                        
+                        <div class="connection-details">
+                            <p><strong>👤 Username:</strong> ${result.customer.username}</p>
+                            <p><strong>📧 Email:</strong> ${result.customer.email}</p>
+                            <p><strong>📊 Dung lượng:</strong> ${result.vpn_config.traffic_limit_gb} GB</p>
+                            <p><strong>📅 Hết hạn:</strong> ${expiryDate.toLocaleDateString('vi-VN')}</p>
+                            <p><strong>🔧 Giao thức:</strong> ${result.vpn_config.protocol.toUpperCase()}</p>
+                        </div>
+                        
+                        <h3 style="margin-top: 20px;">📱 Connection URL:</h3>
+                        <textarea id="connectionUrl" readonly>${connectionUrl}</textarea>
+                        <button class="copy-btn" onclick="copyToClipboard()">📋 Copy URL</button>
+                        
+                        <div class="info-box">
+                            <strong>⚠️ Lưu ý quan trọng:</strong><br>
+                            • Vui lòng sao chép và lưu lại URL trên<br>
+                            • Tải app: V2rayNG (Android) hoặc Shadowrocket (iOS)<br>
+                            • Import URL vào app để sử dụng<br>
+                            • Đăng nhập tại <a href="${API_URL}/docs" target="_blank">API Portal</a> để quản lý
+                        </div>
+                    `;
+                    
+                    // Reset form
+                    document.getElementById('registerForm').reset();
+                    
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3>❌ Đăng ký thất bại</h3>
+                        <p><strong>Lỗi:</strong> ${result.detail || 'Đã xảy ra lỗi không xác định'}</p>
+                        <p style="margin-top: 10px; font-size: 13px;">
+                            Vui lòng kiểm tra lại thông tin và thử lại.
+                        </p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Lỗi kết nối</h3>
+                    <p><strong>Chi tiết:</strong> ${error.message}</p>
+                    <p style="margin-top: 10px; font-size: 13px;">
+                        Không thể kết nối đến server API. Vui lòng kiểm tra:
+                    </p>
+                    <ul style="margin-top: 10px; margin-left: 20px; font-size: 13px;">
+                        <li>Server API có đang chạy không?</li>
+                        <li>URL API có đúng không? (${API_URL})</li>
+                        <li>Kết nối internet của bạn</li>
+                    </ul>
+                `;
+            } finally {
+                // Re-enable form
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Đăng ký ngay';
+            }
+        });
+        
+        function copyToClipboard() {
+            const textarea = document.getElementById('connectionUrl');
+            textarea.select();
+            document.execCommand('copy');
+            
+            // Show feedback
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Đã copy!';
+            btn.style.background = '#28a745';
+            
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '#28a745';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
