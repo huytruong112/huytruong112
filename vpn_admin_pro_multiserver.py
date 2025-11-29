@@ -70,6 +70,35 @@ def add_server(name, host, username, password, notes=""):
         st.error(f"Lỗi thêm server: {str(e)}")
         return None
 
+def update_server(server_id, name, host, username, password, notes=""):
+    """Cập nhật thông tin server"""
+    try:
+        servers = load_servers()
+        if not isinstance(servers, dict):
+            return False
+        
+        if server_id not in servers:
+            st.error(f"Server ID {server_id} không tồn tại!")
+            return False
+        
+        # Giữ lại added_date cũ
+        old_added_date = servers[server_id].get('added_date', datetime.now().isoformat())
+        
+        servers[server_id] = {
+            "name": name,
+            "host": host,
+            "username": username,
+            "password": password,
+            "notes": notes,
+            "added_date": old_added_date,
+            "updated_date": datetime.now().isoformat()
+        }
+        save_servers(servers)
+        return True
+    except Exception as e:
+        st.error(f"Lỗi cập nhật server: {str(e)}")
+        return False
+
 def delete_server(server_id):
     """Xóa server"""
     try:
@@ -427,36 +456,141 @@ elif menu == "🖥️ Quản lý Server":
             
             for sid, sconfig in servers.items():
                 with st.container(border=True):
-                    col1, col2, col3 = st.columns([3, 1, 1])
+                    # Header row với các nút action
+                    col_header1, col_header2 = st.columns([3, 1])
                     
-                    with col1:
+                    with col_header1:
                         st.subheader(f"🖥️ {sconfig['name']}")
-                        st.caption(f"**Host:** {sconfig['host']}")
-                        st.caption(f"**Username:** {sconfig['username']}")
-                        st.caption(f"**Thêm lúc:** {sconfig.get('added_date', 'N/A')[:10]}")
+                    
+                    with col_header2:
+                        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
+                        with col_btn1:
+                            show_detail = st.button("👁️", key=f"detail_{sid}", help="Xem chi tiết")
+                        with col_btn2:
+                            test_conn = st.button("🔍", key=f"test_{sid}", help="Test kết nối")
+                        with col_btn3:
+                            edit_server = st.button("✏️", key=f"edit_{sid}", help="Sửa server")
+                        with col_btn4:
+                            delete_btn = st.button("🗑️", key=f"del_{sid}", help="Xóa server", type="primary")
+                    
+                    # Info row
+                    col_info1, col_info2 = st.columns([2, 1])
+                    
+                    with col_info1:
+                        st.caption(f"**🌐 Host:** `{sconfig['host']}`")
+                        st.caption(f"**👤 Username:** `{sconfig['username']}`")
                         if sconfig.get('notes'):
-                            st.caption(f"**Ghi chú:** {sconfig['notes']}")
+                            st.caption(f"**📝 Ghi chú:** {sconfig['notes']}")
                     
-                    with col2:
-                        if st.button("🔍 Test", key=f"test_{sid}"):
-                            with st.spinner("Đang test kết nối..."):
-                                test_session = get_session(sconfig['host'], sconfig['username'], sconfig['password'])
-                                if test_session:
-                                    st.success("✅ Kết nối OK!")
-                                else:
-                                    st.error("❌ Không kết nối được!")
+                    with col_info2:
+                        st.caption(f"**📅 Thêm:** {sconfig.get('added_date', 'N/A')[:10]}")
+                        if sconfig.get('updated_date'):
+                            st.caption(f"**🔄 Sửa:** {sconfig.get('updated_date', 'N/A')[:10]}")
+                        st.caption(f"**🆔 ID:** `{sid}`")
                     
-                    with col3:
-                        if st.button("🗑️ Xóa", key=f"del_{sid}", type="primary"):
-                            if delete_server(sid):
-                                st.success(f"✅ Đã xóa server {sconfig['name']}!")
-                                # FIX: Clear cache khi xóa
-                                if 'current_server_id' in st.session_state:
-                                    del st.session_state['current_server_id']
-                                time.sleep(1)
-                                st.rerun()
+                    # Actions
+                    if show_detail:
+                        with st.expander("📋 Chi tiết Server", expanded=True):
+                            st.json({
+                                "ID": sid,
+                                "Name": sconfig['name'],
+                                "Host": sconfig['host'],
+                                "Username": sconfig['username'],
+                                "Password": "***" + sconfig['password'][-3:] if len(sconfig['password']) > 3 else "***",
+                                "Notes": sconfig.get('notes', ''),
+                                "Added Date": sconfig.get('added_date', 'N/A'),
+                                "Updated Date": sconfig.get('updated_date', 'N/A')
+                            })
+                            
+                            # Copy buttons
+                            col_copy1, col_copy2, col_copy3 = st.columns(3)
+                            with col_copy1:
+                                st.code(sconfig['host'], language="text")
+                                st.caption("↑ Host (click để copy)")
+                            with col_copy2:
+                                st.code(sconfig['username'], language="text")
+                                st.caption("↑ Username")
+                            with col_copy3:
+                                st.code(sconfig['password'], language="text")
+                                st.caption("↑ Password")
+                    
+                    if test_conn:
+                        with st.spinner("Đang test kết nối..."):
+                            test_session = get_session(sconfig['host'], sconfig['username'], sconfig['password'])
+                            if test_session:
+                                st.success("✅ Kết nối OK!")
                             else:
-                                st.error("❌ Xóa thất bại!")
+                                st.error("❌ Không kết nối được!")
+                    
+                    if edit_server:
+                        with st.expander("✏️ Sửa Server", expanded=True):
+                            edit_form_key = f"edit_form_{sid}_{int(time.time() * 1000)}"
+                            
+                            with st.form(key=edit_form_key):
+                                st.info(f"🆔 Đang sửa server: **{sconfig['name']}** (ID: `{sid}`)")
+                                
+                                edit_name = st.text_input("Tên Server", value=sconfig['name'])
+                                edit_host = st.text_input("HOST", value=sconfig['host'])
+                                edit_username = st.text_input("Username", value=sconfig['username'])
+                                edit_password = st.text_input("Password", value=sconfig['password'], type="password")
+                                edit_notes = st.text_area("Ghi chú", value=sconfig.get('notes', ''))
+                                
+                                col_save, col_cancel = st.columns(2)
+                                with col_save:
+                                    save_edit = st.form_submit_button("💾 Lưu thay đổi", use_container_width=True, type="primary")
+                                with col_cancel:
+                                    cancel_edit = st.form_submit_button("❌ Hủy", use_container_width=True)
+                                
+                                if save_edit:
+                                    if not all([edit_name, edit_host, edit_username, edit_password]):
+                                        st.error("⚠️ Vui lòng điền đầy đủ thông tin!")
+                                    else:
+                                        # Test connection trước khi lưu
+                                        with st.spinner("Đang test kết nối..."):
+                                            test_session = get_session(edit_host, edit_username, edit_password)
+                                            if test_session:
+                                                if update_server(sid, edit_name, edit_host, edit_username, edit_password, edit_notes):
+                                                    st.success(f"✅ Đã cập nhật server '{edit_name}'!")
+                                                    # Clear cache
+                                                    if 'current_server_id' in st.session_state:
+                                                        del st.session_state['current_server_id']
+                                                    time.sleep(1.5)
+                                                    st.rerun()
+                                                else:
+                                                    st.error("❌ Lỗi khi cập nhật server!")
+                                            else:
+                                                st.error("❌ Không thể kết nối! Kiểm tra lại thông tin.")
+                                
+                                if cancel_edit:
+                                    st.info("Đã hủy chỉnh sửa.")
+                                    st.rerun()
+                    
+                    if delete_btn:
+                        # Lưu state để confirm
+                        st.session_state[f'confirm_delete_{sid}'] = True
+                    
+                    # Confirm delete
+                    if st.session_state.get(f'confirm_delete_{sid}', False):
+                        st.warning(f"⚠️ Xác nhận xóa server **{sconfig['name']}**?")
+                        col_yes, col_no = st.columns(2)
+                        with col_yes:
+                            if st.button("✅ Xác nhận xóa", key=f"confirm_del_yes_{sid}", type="primary"):
+                                if delete_server(sid):
+                                    st.success(f"✅ Đã xóa server {sconfig['name']}!")
+                                    # Clear cache
+                                    if 'current_server_id' in st.session_state:
+                                        del st.session_state['current_server_id']
+                                    if f'confirm_delete_{sid}' in st.session_state:
+                                        del st.session_state[f'confirm_delete_{sid}']
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Xóa thất bại!")
+                        with col_no:
+                            if st.button("❌ Hủy xóa", key=f"confirm_del_no_{sid}"):
+                                if f'confirm_delete_{sid}' in st.session_state:
+                                    del st.session_state[f'confirm_delete_{sid}']
+                                st.rerun()
     
     with tab2:
         st.subheader("➕ Thêm Server mới")
