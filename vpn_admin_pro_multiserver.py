@@ -328,11 +328,34 @@ def update_inbound(session, host, inbound_id, inbounds, new_remark=None, new_day
             "sniffing": json.dumps(current.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(current.get('sniffing'), dict) else current.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
         }
         
+        # DEBUG
+        with st.expander("🔍 Debug - Update Inbound", expanded=False):
+            st.write("**Changes:**")
+            if new_remark: st.write(f"  - Remark: {current['remark']} → {remark}")
+            if new_days is not None: st.write(f"  - Days: {(current['expiryTime'] - int(time.time()*1000))/(86400*1000):.1f} → {new_days}")
+            if new_data_limit_gb is not None: st.write(f"  - Data: {current['total']/(1024**3):.1f}GB → {new_data_limit_gb}GB")
+            st.write("**Payload keys:**", list(payload.keys()))
+        
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
-        if resp.status_code == 200 and "success" in resp.text.lower():
-            return True, "OK"
-        return False, resp.text
+        
+        # DEBUG Response
+        with st.expander("🔍 Debug Response - Update", expanded=False):
+            st.write("**Status:**", resp.status_code)
+            st.write("**Response:**", resp.text[:500])
+        
+        if resp.status_code == 200:
+            if "success" in resp.text.lower():
+                return True, "OK"
+            else:
+                st.error(f"❌ API: {resp.text[:200]}")
+                return False, resp.text
+        else:
+            st.error(f"❌ HTTP {resp.status_code}")
+            return False, resp.text
     except Exception as e:
+        st.error(f"❌ Update error: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
         return False, str(e)
 
 def reset_traffic(session, host, inbound_id, inbounds):
@@ -340,6 +363,7 @@ def reset_traffic(session, host, inbound_id, inbounds):
     try:
         target = next((x for x in inbounds if x['id'] == inbound_id), None)
         if not target:
+            st.error("❌ Không tìm thấy inbound!")
             return False
         
         # Build payload - stringify settings
@@ -358,10 +382,33 @@ def reset_traffic(session, host, inbound_id, inbounds):
             "sniffing": json.dumps(target.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(target.get('sniffing'), dict) else target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
         }
         
+        # DEBUG
+        with st.expander("🔍 Debug Info", expanded=False):
+            st.write("**Request URL:**", f"{host}/xui/inbound/update/{inbound_id}")
+            st.write("**Payload keys:**", list(payload.keys()))
+            st.write("**Settings type:**", type(payload['settings']))
+            st.write("**Settings preview:**", str(payload['settings'])[:100])
+        
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
-        return resp.status_code == 200 and "success" in resp.text.lower()
+        
+        # DEBUG Response
+        with st.expander("🔍 Debug Response", expanded=False):
+            st.write("**Status Code:**", resp.status_code)
+            st.write("**Response Text:**", resp.text[:500])
+        
+        if resp.status_code == 200:
+            if "success" in resp.text.lower():
+                return True
+            else:
+                st.error(f"❌ API trả về: {resp.text[:200]}")
+                return False
+        else:
+            st.error(f"❌ HTTP Error {resp.status_code}")
+            return False
     except Exception as e:
-        st.error(f"Reset traffic error: {str(e)}")
+        st.error(f"❌ Reset traffic error: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
         return False
 
 def extend_expiry(session, host, inbound_id, additional_days, inbounds):
@@ -369,6 +416,7 @@ def extend_expiry(session, host, inbound_id, additional_days, inbounds):
     try:
         target = next((x for x in inbounds if x['id'] == inbound_id), None)
         if not target:
+            st.error("❌ Không tìm thấy inbound!")
             return False
         
         current_expiry = target['expiryTime']
@@ -393,10 +441,31 @@ def extend_expiry(session, host, inbound_id, additional_days, inbounds):
             "sniffing": json.dumps(target.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(target.get('sniffing'), dict) else target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
         }
         
+        # DEBUG
+        with st.expander("🔍 Debug - Gia hạn", expanded=False):
+            st.write("**Old expiry:**", current_expiry)
+            st.write("**New expiry:**", new_expiry)
+            st.write("**Diff days:**", (new_expiry - current_expiry) / (86400 * 1000))
+        
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
-        return resp.status_code == 200 and "success" in resp.text.lower()
+        
+        with st.expander("🔍 Debug Response", expanded=False):
+            st.write("**Status:**", resp.status_code)
+            st.write("**Response:**", resp.text[:500])
+        
+        if resp.status_code == 200:
+            if "success" in resp.text.lower():
+                return True
+            else:
+                st.error(f"❌ API: {resp.text[:200]}")
+                return False
+        else:
+            st.error(f"❌ HTTP {resp.status_code}")
+            return False
     except Exception as e:
-        st.error(f"Extend expiry error: {str(e)}")
+        st.error(f"❌ Extend error: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
         return False
 
 def toggle_inbound(session, host, inbound_id, enable, inbounds):
@@ -404,6 +473,7 @@ def toggle_inbound(session, host, inbound_id, enable, inbounds):
     try:
         target = next((x for x in inbounds if x['id'] == inbound_id), None)
         if not target:
+            st.error("❌ Không tìm thấy inbound!")
             return False
         
         # Build payload - stringify settings
@@ -422,10 +492,30 @@ def toggle_inbound(session, host, inbound_id, enable, inbounds):
             "sniffing": json.dumps(target.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(target.get('sniffing'), dict) else target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
         }
         
+        # DEBUG
+        with st.expander("🔍 Debug - Toggle", expanded=False):
+            st.write("**Changing to:**", "✅ Enable" if enable else "❌ Disable")
+            st.write("**Current enable:**", target['enable'])
+        
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
-        return resp.status_code == 200 and "success" in resp.text.lower()
+        
+        with st.expander("🔍 Debug Response", expanded=False):
+            st.write("**Status:**", resp.status_code)
+            st.write("**Response:**", resp.text[:500])
+        
+        if resp.status_code == 200:
+            if "success" in resp.text.lower():
+                return True
+            else:
+                st.error(f"❌ API: {resp.text[:200]}")
+                return False
+        else:
+            st.error(f"❌ HTTP {resp.status_code}")
+            return False
     except Exception as e:
-        st.error(f"Toggle error: {str(e)}")
+        st.error(f"❌ Toggle error: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
         return False
 
 # --- GIAO DIỆN CHÍNH ---
@@ -1169,4 +1259,4 @@ elif servers and menu in ["📊 Dashboard Server", "➕ Tạo User", "👥 Quả
                     st.write(f"**{proto.upper()}:** {data['count']} user, {data['traffic']:.2f} GB")
 
 st.write("---")
-st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3.2 - Critical Bugfix: Parse JSON")
+st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3.3 - Debug Mode Enabled")
