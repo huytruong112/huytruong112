@@ -686,8 +686,20 @@ if __name__ == '__main__':
     print("=" * 60)
     print("  VPN Vietnam - Admin Panel")
     print("=" * 60)
-    print(f"Python Version: {os.sys.version}")
-    print(f"Flask Version: {Flask.__version__}")
+    print(f"Python Version: {os.sys.version.split()[0]}")
+    
+    # Get Flask version properly
+    try:
+        from importlib.metadata import version
+        flask_version = version('flask')
+    except:
+        try:
+            import flask
+            flask_version = getattr(flask, '__version__', '3.0+')
+        except:
+            flask_version = '3.0+'
+    print(f"Flask Version: {flask_version}")
+    
     print(f"3X-UI Panel: {XRAY_PANEL_URL}")
     print(f"Speed Test Available: {SPEEDTEST_AVAILABLE}")
     print("=" * 60)
