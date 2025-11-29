@@ -337,30 +337,64 @@ def reset_traffic(session, host, inbound_id, inbounds):
         return False
 
 def extend_expiry(session, host, inbound_id, additional_days, inbounds):
-    """Gia hạn thêm ngày - WORKAROUND FOR API LIMITATION"""
+    """Gia hạn thêm ngày"""
     try:
-        st.warning("⚠️ **Chức năng Gia hạn hiện không hoạt động do 3X-UI API limitation (HTTP 500)**")
-        st.info("""
-        **WORKAROUND - Chọn 1 trong 2 cách:**
+        target = next((x for x in inbounds if x['id'] == inbound_id), None)
+        if not target:
+            st.error("❌ Không tìm thấy inbound!")
+            return False
         
-        **Cách 1: Xóa & Tạo lại** (Khuyến nghị)
-        1. Note lại thông tin client (remark, protocol, settings)
-        2. Click 🗑️ Xóa client này (✅ hoạt động)
-        3. Click ➕ Tạo Mới với thông tin giống và expiry mới (✅ hoạt động)
+        current_expiry = target['expiryTime']
+        if current_expiry < int(time.time() * 1000):
+            new_expiry = int(time.time() * 1000) + (additional_days * 86400 * 1000)
+        else:
+            new_expiry = current_expiry + (additional_days * 86400 * 1000)
         
-        **Cách 2: Sửa trực tiếp trên 3X-UI Panel**
-        1. Mở 3X-UI panel gốc
-        2. Vào Inbounds → Edit inbound này  
-        3. Thay đổi Expiry Time
-        4. Click Update
+        # Build payload - stringify settings
+        payload = {
+            "up": target['up'],
+            "down": target['down'],
+            "total": target['total'],
+            "remark": target['remark'],
+            "enable": target['enable'],
+            "expiryTime": new_expiry,
+            "listen": target.get('listen', ''),
+            "port": target['port'],
+            "protocol": target['protocol'],
+            "settings": json.dumps(target['settings']) if isinstance(target['settings'], dict) else target['settings'],
+            "streamSettings": json.dumps(target['streamSettings']) if isinstance(target['streamSettings'], dict) else target['streamSettings'],
+            "sniffing": json.dumps(target.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(target.get('sniffing'), dict) else target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
+        }
         
-        **Note:** Tôi đang làm việc để fix API này trong phiên bản tiếp theo!
-        """)
-        return False
+        # DEBUG
+        with st.expander("🔍 Debug - Gia hạn", expanded=True):
+            st.write("**Old expiry:**", current_expiry)
+            st.write("**New expiry:**", new_expiry)
+            st.write("**Diff days:**", (new_expiry - current_expiry) / (86400 * 1000))
+            st.write("---")
+            st.write("**FULL PAYLOAD:**")
+            st.json({k: str(v)[:200] if len(str(v)) > 200 else v for k, v in payload.items()})
+        
+        resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
+        
+        with st.expander("🔍 Debug Response", expanded=False):
+            st.write("**Status:**", resp.status_code)
+            st.write("**Response:**", resp.text[:500])
+        
+        if resp.status_code == 200:
+            if "success" in resp.text.lower():
+                return True
+            else:
+                st.error(f"❌ API: {resp.text[:200]}")
+                return False
+        else:
+            st.error(f"❌ HTTP {resp.status_code}")
+            return False
     except Exception as e:
-        st.error(f"❌ Error: {str(e)}")
+        st.error(f"❌ Extend error: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
         return False
-
 
 def toggle_inbound(session, host, inbound_id, enable, inbounds):
     """Bật/tắt inbound - TRY SIMPLE METHOD"""
@@ -1138,4 +1172,4 @@ elif servers and menu in ["📊 Dashboard Server", "➕ Tạo User", "👥 Quả
                     st.write(f"**{proto.upper()}:** {data['count']} user, {data['traffic']:.2f} GB")
 
 st.write("---")
-st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3.4 - API Limitations Workaround")
+st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3.3 - Debug Mode Enabled")
