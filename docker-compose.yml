@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  vpn-api:
+    build: .
+    container_name: vpn-subscription-api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DATABASE_URL=sqlite+aiosqlite:///./data/vpn_service.db
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./qrcodes:/app/qrcodes
+    restart: unless-stopped
+    networks:
+      - vpn-network
+
+networks:
+  vpn-network:
+    driver: bridge
