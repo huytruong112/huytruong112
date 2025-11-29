@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}Monitoring VPS{% endblock %}
+{% block page_title %}Theo dõi VPS Real-time{% endblock %}
+
+{% block content %}
+<div class="monitoring-page">
+    <!-- Real-time Stats -->
+    <div class="stats-grid">
+        <div class="stat-card animated">
+            <div class="stat-icon cpu">
+                <i class="fas fa-microchip"></i>
+            </div>
+            <div class="stat-details">
+                <h3>CPU Usage</h3>
+                <div class="stat-value" id="mon-cpu-usage">--</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="cpu-progress"></div>
+                </div>
+                <div class="stat-meta">
+                    <span id="mon-cpu-cores">-- cores</span>
+                    <span id="mon-cpu-freq">-- GHz</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card animated">
+            <div class="stat-icon memory">
+                <i class="fas fa-memory"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Memory Usage</h3>
+                <div class="stat-value" id="mon-ram-usage">--</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="ram-progress"></div>
+                </div>
+                <div class="stat-meta">
+                    <span id="mon-ram-used">--</span> / <span id="mon-ram-total">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card animated">
+            <div class="stat-icon disk">
+                <i class="fas fa-hdd"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Disk Usage</h3>
+                <div class="stat-value" id="mon-disk-usage">--</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="disk-progress"></div>
+                </div>
+                <div class="stat-meta">
+                    <span id="mon-disk-used">--</span> / <span id="mon-disk-total">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card animated">
+            <div class="stat-icon network">
+                <i class="fas fa-network-wired"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Network Traffic</h3>
+                <div class="stat-value" id="mon-network-total">--</div>
+                <div class="stat-meta network-stats">
+                    <div>
+                        <i class="fas fa-download"></i>
+                        <span id="mon-network-down">--</span>
+                    </div>
+                    <div>
+                        <i class="fas fa-upload"></i>
+                        <span id="mon-network-up">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Info -->
+    <div class="grid-2col">
+        <div class="section-card">
+            <div class="card-header">
+                <h2><i class="fas fa-server"></i> Thông tin Server</h2>
+            </div>
+            <div class="card-body">
+                <div class="info-list">
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-clock"></i> Uptime:</span>
+                        <span class="info-value" id="mon-uptime">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-microchip"></i> CPU Cores:</span>
+                        <span class="info-value" id="mon-cpu-cores-detail">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-tachometer-alt"></i> CPU Freq:</span>
+                        <span class="info-value" id="mon-cpu-freq-detail">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-memory"></i> Total RAM:</span>
+                        <span class="info-value" id="mon-ram-total-detail">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-hdd"></i> Total Disk:</span>
+                        <span class="info-value" id="mon-disk-total-detail">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="card-header">
+                <h2><i class="fas fa-ethernet"></i> Network Interfaces</h2>
+            </div>
+            <div class="card-body">
+                <div class="info-list" id="mon-network-interfaces">
+                    <div class="info-item">
+                        <span class="info-label">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid-2col">
+        <div class="section-card">
+            <div class="card-header">
+                <h2><i class="fas fa-chart-area"></i> CPU History</h2>
+            </div>
+            <div class="card-body">
+                <canvas id="cpu-chart" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="section-card">
+            <div class="card-header">
+                <h2><i class="fas fa-chart-area"></i> Memory History</h2>
+            </div>
+            <div class="card-body">
+                <canvas id="memory-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network Traffic Chart -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-line"></i> Network Traffic History</h2>
+        </div>
+        <div class="card-body">
+            <canvas id="network-chart" height="150"></canvas>
+        </div>
+    </div>
+
+    <!-- Process List -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-tasks"></i> Top Processes</h2>
+            <button class="btn btn-sm btn-secondary" onclick="refreshProcesses()">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Process</th>
+                            <th>PID</th>
+                            <th>CPU %</th>
+                            <th>Memory %</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="processes-tbody">
+                        <tr>
+                            <td colspan="5" class="text-center">
+                                <i class="fas fa-info-circle"></i> Process monitoring coming soon
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Chart data storage
+const maxDataPoints = 30;
+const cpuData = [];
+const memoryData = [];
+const networkSentData = [];
+const networkRecvData = [];
+const timeLabels = [];
+
+// Initialize charts
+let cpuChart, memoryChart, networkChart;
+
+function initCharts() {
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+            duration: 0
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    };
+
+    // CPU Chart
+    const cpuCtx = document.getElementById('cpu-chart').getContext('2d');
+    cpuChart = new Chart(cpuCtx, {
+        type: 'line',
+        data: {
+            labels: timeLabels,
+            datasets: [{
+                label: 'CPU %',
+                data: cpuData,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: chartOptions
+    });
+
+    // Memory Chart
+    const memoryCtx = document.getElementById('memory-chart').getContext('2d');
+    memoryChart = new Chart(memoryCtx, {
+        type: 'line',
+        data: {
+            labels: timeLabels,
+            datasets: [{
+                label: 'Memory %',
+                data: memoryData,
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: chartOptions
+    });
+
+    // Network Chart
+    const networkCtx = document.getElementById('network-chart').getContext('2d');
+    networkChart = new Chart(networkCtx, {
+        type: 'line',
+        data: {
+            labels: timeLabels,
+            datasets: [
+                {
+                    label: 'Download (MB/s)',
+                    data: networkRecvData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Upload (MB/s)',
+                    data: networkSentData,
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            ...chartOptions,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true
+                }
+            }
+        }
+    });
+}
+
+let lastNetworkBytes = null;
+let lastUpdateTime = null;
+
+function updateMonitoring() {
+    fetch('/api/system/stats')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                const data = result.data;
+                updateUI(data);
+                updateCharts(data);
+            }
+        })
+        .catch(error => console.error('Error updating monitoring:', error));
+}
+
+function updateUI(data) {
+    // CPU
+    document.getElementById('mon-cpu-usage').textContent = data.cpu.percent.toFixed(1) + '%';
+    document.getElementById('mon-cpu-cores').textContent = data.cpu.count + ' cores';
+    document.getElementById('mon-cpu-freq').textContent = (data.cpu.frequency / 1000).toFixed(2) + ' GHz';
+    document.getElementById('cpu-progress').style.width = data.cpu.percent + '%';
+    
+    document.getElementById('mon-cpu-cores-detail').textContent = data.cpu.count;
+    document.getElementById('mon-cpu-freq-detail').textContent = (data.cpu.frequency / 1000).toFixed(2) + ' GHz';
+    
+    // Memory
+    document.getElementById('mon-ram-usage').textContent = data.memory.percent.toFixed(1) + '%';
+    document.getElementById('mon-ram-used').textContent = formatBytes(data.memory.used);
+    document.getElementById('mon-ram-total').textContent = formatBytes(data.memory.total);
+    document.getElementById('ram-progress').style.width = data.memory.percent + '%';
+    document.getElementById('mon-ram-total-detail').textContent = formatBytes(data.memory.total);
+    
+    // Disk
+    document.getElementById('mon-disk-usage').textContent = data.disk.percent.toFixed(1) + '%';
+    document.getElementById('mon-disk-used').textContent = formatBytes(data.disk.used);
+    document.getElementById('mon-disk-total').textContent = formatBytes(data.disk.total);
+    document.getElementById('disk-progress').style.width = data.disk.percent + '%';
+    document.getElementById('mon-disk-total-detail').textContent = formatBytes(data.disk.total);
+    
+    // Network
+    const totalTraffic = data.network.bytes_sent + data.network.bytes_recv;
+    document.getElementById('mon-network-total').textContent = formatBytes(totalTraffic);
+    document.getElementById('mon-network-down').textContent = formatBytes(data.network.bytes_recv);
+    document.getElementById('mon-network-up').textContent = formatBytes(data.network.bytes_sent);
+    
+    // Uptime
+    document.getElementById('mon-uptime').textContent = data.uptime;
+    
+    // Network Interfaces
+    const interfacesHtml = data.network.interfaces.map(iface => `
+        <div class="info-item">
+            <span class="info-label"><i class="fas fa-ethernet"></i> ${iface.name}:</span>
+            <span class="info-value">${iface.ip}</span>
+        </div>
+    `).join('');
+    document.getElementById('mon-network-interfaces').innerHTML = interfacesHtml;
+}
+
+function updateCharts(data) {
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                    now.getMinutes().toString().padStart(2, '0') + ':' + 
+                    now.getSeconds().toString().padStart(2, '0');
+    
+    // Add new data
+    cpuData.push(data.cpu.percent);
+    memoryData.push(data.memory.percent);
+    timeLabels.push(timeStr);
+    
+    // Calculate network speed (bytes per second)
+    if (lastNetworkBytes && lastUpdateTime) {
+        const timeDiff = (data.timestamp - lastUpdateTime); // seconds
+        const sentDiff = data.network.bytes_sent - lastNetworkBytes.sent;
+        const recvDiff = data.network.bytes_recv - lastNetworkBytes.recv;
+        
+        const sentSpeed = (sentDiff / timeDiff) / (1024 * 1024); // MB/s
+        const recvSpeed = (recvDiff / timeDiff) / (1024 * 1024); // MB/s
+        
+        networkSentData.push(Math.max(0, sentSpeed));
+        networkRecvData.push(Math.max(0, recvSpeed));
+    } else {
+        networkSentData.push(0);
+        networkRecvData.push(0);
+    }
+    
+    lastNetworkBytes = {
+        sent: data.network.bytes_sent,
+        recv: data.network.bytes_recv
+    };
+    lastUpdateTime = data.timestamp;
+    
+    // Keep only last N data points
+    if (cpuData.length > maxDataPoints) {
+        cpuData.shift();
+        memoryData.shift();
+        networkSentData.shift();
+        networkRecvData.shift();
+        timeLabels.shift();
+    }
+    
+    // Update charts
+    cpuChart.update();
+    memoryChart.update();
+    networkChart.update();
+}
+
+function formatBytes(bytes) {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+    }
+    
+    return size.toFixed(2) + ' ' + units[unitIndex];
+}
+
+function refreshProcesses() {
+    // TODO: Implement process monitoring
+    console.log('Process monitoring not yet implemented');
+}
+
+// Initialize
+initCharts();
+updateMonitoring();
+
+// Update every 3 seconds
+const monitoringInterval = setInterval(updateMonitoring, 3000);
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    clearInterval(monitoringInterval);
+});
+</script>
+{% endblock %}

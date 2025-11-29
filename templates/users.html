@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý Users{% endblock %}
+{% block page_title %}Quản lý Users/Clients{% endblock %}
+
+{% block content %}
+<div class="users-page">
+    <!-- Header Actions -->
+    <div class="page-actions">
+        <button class="btn btn-primary" onclick="showAddUserModal()">
+            <i class="fas fa-user-plus"></i> Thêm User mới
+        </button>
+        <button class="btn btn-secondary" onclick="refreshUsers()">
+            <i class="fas fa-sync"></i> Làm mới
+        </button>
+    </div>
+
+    <!-- Inbounds Selection -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-server"></i> Chọn Inbound</h2>
+        </div>
+        <div class="card-body">
+            <div class="inbound-selector">
+                <select id="inbound-select" onchange="loadInboundClients()">
+                    <option value="">-- Chọn Inbound --</option>
+                </select>
+                <div class="inbound-info" id="inbound-info"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="section-card">
+        <div class="card-header">
+            <h2><i class="fas fa-users"></i> Danh sách Users</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="data-table" id="users-table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>UUID</th>
+                            <th>Traffic</th>
+                            <th>Total GB</th>
+                            <th>Expiry</th>
+                            <th>IP Limit</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody">
+                        <tr>
+                            <td colspan="8" class="text-center">
+                                Vui lòng chọn một Inbound
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div id="addUserModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-user-plus"></i> Thêm User mới</h2>
+            <button class="close-btn" onclick="closeAddUserModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label for="user-inbound">Inbound</label>
+                    <select id="user-inbound" name="inbound_id" required>
+                        <option value="">-- Chọn Inbound --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-email">Email (Username)</label>
+                    <input type="email" id="user-email" name="email" required 
+                           placeholder="user@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="user-total-gb">Total GB (0 = unlimited)</label>
+                    <input type="number" id="user-total-gb" name="total_gb" 
+                           value="0" min="0" placeholder="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="user-expiry">Expiry Time (days from now, 0 = no expiry)</label>
+                    <input type="number" id="user-expiry" name="expiry_days" 
+                           value="30" min="0" placeholder="30">
+                </div>
+
+                <div class="form-group">
+                    <label for="user-limit-ip">IP Limit (0 = unlimited)</label>
+                    <input type="number" id="user-limit-ip" name="limit_ip" 
+                           value="0" min="0" placeholder="0">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddUserModal()">
+                        Hủy
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Thêm User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View User Config Modal -->
+<div id="viewUserConfigModal" class="modal">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h2><i class="fas fa-qrcode"></i> Config & QR Code</h2>
+            <button class="close-btn" onclick="closeViewUserConfigModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="config-display">
+                <div class="config-section">
+                    <h3>Connection Link</h3>
+                    <div class="config-text">
+                        <textarea id="user-config-link" readonly></textarea>
+                        <button class="btn btn-sm" onclick="copyConfig()">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="config-section">
+                    <h3>QR Code</h3>
+                    <div id="qr-code-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+let currentInbounds = [];
+let selectedInbound = null;
+
+function refreshUsers() {
+    loadInbounds();
+    if (selectedInbound) {
+        loadInboundClients();
+    }
+}
+
+function loadInbounds() {
+    fetch('/api/configs/list')
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                currentInbounds = result.data;
+                displayInbounds(result.data);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading inbounds:', error);
+        });
+}
+
+function displayInbounds(inbounds) {
+    const select = document.getElementById('inbound-select');
+    const userInboundSelect = document.getElementById('user-inbound');
+    
+    const options = inbounds.map(inbound => 
+        `<option value="${inbound.id}">${inbound.remark} (${inbound.protocol}:${inbound.port})</option>`
+    ).join('');
+    
+    select.innerHTML = '<option value="">-- Chọn Inbound --</option>' + options;
+    userInboundSelect.innerHTML = '<option value="">-- Chọn Inbound --</option>' + options;
+}
+
+function loadInboundClients() {
+    const select = document.getElementById('inbound-select');
+    const inboundId = select.value;
+    
+    if (!inboundId) {
+        document.getElementById('users-tbody').innerHTML = `
+            <tr><td colspan="8" class="text-center">Vui lòng chọn một Inbound</td></tr>
+        `;
+        return;
+    }
+    
+    selectedInbound = currentInbounds.find(i => i.id == inboundId);
+    if (!selectedInbound) return;
+    
+    const settings = typeof selectedInbound.settings === 'string' ? 
+        JSON.parse(selectedInbound.settings) : selectedInbound.settings;
+    
+    const clients = settings.clients || [];
+    displayClients(clients);
+    
+    // Display inbound info
+    const info = document.getElementById('inbound-info');
+    info.innerHTML = `
+        <div class="info-grid">
+            <div><strong>Port:</strong> ${selectedInbound.port}</div>
+            <div><strong>Protocol:</strong> ${selectedInbound.protocol}</div>
+            <div><strong>Clients:</strong> ${clients.length}</div>
+            <div><strong>Status:</strong> ${selectedInbound.enable ? 
+                '<span class="badge badge-success">Active</span>' : 
+                '<span class="badge badge-danger">Disabled</span>'}</div>
+        </div>
+    `;
+}
+
+function displayClients(clients) {
+    const tbody = document.getElementById('users-tbody');
+    
+    if (clients.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center">
+                    <i class="fas fa-inbox"></i> Chưa có user nào
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = clients.map((client, index) => {
+        const expiryDate = client.expiryTime ? new Date(client.expiryTime).toLocaleDateString('vi-VN') : 'Không giới hạn';
+        const totalGB = client.totalGB ? `${(client.totalGB / (1024**3)).toFixed(2)} GB` : 'Unlimited';
+        
+        return `
+            <tr>
+                <td><strong>${client.email}</strong></td>
+                <td><code class="uuid-short">${client.id.substring(0, 8)}...</code></td>
+                <td>
+                    <div class="traffic-info">
+                        <div>↓ ${formatBytes(client.down || 0)}</div>
+                        <div>↑ ${formatBytes(client.up || 0)}</div>
+                    </div>
+                </td>
+                <td>${totalGB}</td>
+                <td>${expiryDate}</td>
+                <td>${client.limitIp || 'Unlimited'}</td>
+                <td>
+                    ${client.enable ? 
+                        '<span class="badge badge-success">Active</span>' : 
+                        '<span class="badge badge-danger">Disabled</span>'}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-icon" onclick="viewClientConfig(${index})" title="View Config">
+                            <i class="fas fa-qrcode"></i>
+                        </button>
+                        <button class="btn-icon" onclick="editClient(${index})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon danger" onclick="deleteClient(${index})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function showAddUserModal() {
+    if (currentInbounds.length === 0) {
+        showNotification('Vui lòng tạo Inbound trước', 'warning');
+        return;
+    }
+    document.getElementById('addUserModal').style.display = 'flex';
+}
+
+function closeAddUserModal() {
+    document.getElementById('addUserModal').style.display = 'none';
+    document.getElementById('addUserForm').reset();
+}
+
+function viewClientConfig(clientIndex) {
+    if (!selectedInbound) return;
+    
+    const settings = typeof selectedInbound.settings === 'string' ? 
+        JSON.parse(selectedInbound.settings) : selectedInbound.settings;
+    const client = settings.clients[clientIndex];
+    
+    // Generate vless link (simplified version)
+    const streamSettings = typeof selectedInbound.streamSettings === 'string' ? 
+        JSON.parse(selectedInbound.streamSettings) : selectedInbound.streamSettings;
+    
+    const serverIP = window.location.hostname;
+    const vlessLink = `vless://${client.id}@${serverIP}:${selectedInbound.port}?` +
+        `type=${streamSettings.network || 'tcp'}&` +
+        `security=${streamSettings.security || 'none'}#${encodeURIComponent(client.email)}`;
+    
+    document.getElementById('user-config-link').value = vlessLink;
+    
+    // Generate QR code
+    const qrContainer = document.getElementById('qr-code-container');
+    qrContainer.innerHTML = '';
+    new QRCode(qrContainer, {
+        text: vlessLink,
+        width: 256,
+        height: 256
+    });
+    
+    document.getElementById('viewUserConfigModal').style.display = 'flex';
+}
+
+function closeViewUserConfigModal() {
+    document.getElementById('viewUserConfigModal').style.display = 'none';
+}
+
+function copyConfig() {
+    const textarea = document.getElementById('user-config-link');
+    textarea.select();
+    document.execCommand('copy');
+    showNotification('Đã copy config link', 'success');
+}
+
+function editClient(clientIndex) {
+    showNotification('Tính năng đang phát triển', 'info');
+}
+
+function deleteClient(clientIndex) {
+    if (!confirm('Bạn có chắc chắn muốn xóa user này?')) return;
+    showNotification('Tính năng đang phát triển', 'info');
+}
+
+// Handle form submission
+document.getElementById('addUserForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const expiryDays = parseInt(document.getElementById('user-expiry').value);
+    const expiryTime = expiryDays > 0 ? Date.now() + (expiryDays * 24 * 60 * 60 * 1000) : 0;
+    
+    const totalGB = parseInt(document.getElementById('user-total-gb').value);
+    const totalGBBytes = totalGB > 0 ? totalGB * (1024**3) : 0;
+    
+    const formData = {
+        inbound_id: parseInt(document.getElementById('user-inbound').value),
+        email: document.getElementById('user-email').value,
+        total_gb: totalGBBytes,
+        expiry_time: expiryTime,
+        limit_ip: parseInt(document.getElementById('user-limit-ip').value)
+    };
+    
+    fetch('/api/users/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            showNotification('Đã thêm user thành công', 'success');
+            closeAddUserModal();
+            refreshUsers();
+        } else {
+            showNotification('Lỗi: ' + result.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding user:', error);
+        showNotification('Lỗi khi thêm user', 'error');
+    });
+});
+
+function formatBytes(bytes) {
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let size = bytes;
+    let unitIndex = 0;
+    
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+    }
+    
+    return size.toFixed(2) + ' ' + units[unitIndex];
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type}`;
+    notification.innerHTML = `<i class="fas fa-info-circle"></i> ${message}`;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '9999';
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Load inbounds on page load
+loadInbounds();
+</script>
+{% endblock %}

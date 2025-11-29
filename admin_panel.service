@@ -1,0 +1,15 @@
+[Unit]
+Description=VPN Vietnam Admin Panel
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/admin_panel
+Environment="PATH=/opt/admin_panel/venv/bin"
+ExecStart=/opt/admin_panel/venv/bin/python /opt/admin_panel/admin_panel.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
