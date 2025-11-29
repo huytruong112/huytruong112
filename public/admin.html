@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Quản Lý Dịch Vụ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #2d3748;
+            color: white;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 20px;
+        }
+
+        .sidebar h2 {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .sidebar nav a {
+            display: block;
+            padding: 12px 15px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+
+        .sidebar nav a:hover,
+        .sidebar nav a.active {
+            background: #4a5568;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2d3748;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .content-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .content-section h2 {
+            margin-bottom: 20px;
+            color: #2d3748;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        table th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        table tr:hover {
+            background: #f7fafc;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin-right: 5px;
+        }
+
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-inactive {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .badge-pending {
+            background: #feebc8;
+            color: #744210;
+        }
+
+        .badge-paid {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .alert-error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>🎛️ Admin Panel</h2>
+        <nav>
+            <a href="#" class="nav-link active" data-section="dashboard">📊 Dashboard</a>
+            <a href="#" class="nav-link" data-section="customers">👥 Khách Hàng</a>
+            <a href="#" class="nav-link" data-section="orders">🛒 Đơn Hàng</a>
+            <a href="#" class="nav-link" data-section="clients">🔗 Clients</a>
+            <a href="#" class="nav-link" data-section="packages">📦 Gói Dịch Vụ</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>Quản Lý Dịch Vụ 3X-UI</h1>
+        </div>
+
+        <div id="alertContainer"></div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="content-section active">
+            <h2>Thống Kê Tổng Quan</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Tổng Khách Hàng</h3>
+                    <div class="value" id="totalCustomers">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Tổng Đơn Hàng</h3>
+                    <div class="value" id="totalOrders">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Doanh Thu</h3>
+                    <div class="value" id="totalRevenue">0đ</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Clients Hoạt Động</h3>
+                    <div class="value" id="activeClients">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customers Section -->
+        <div id="customers" class="content-section">
+            <h2>Danh Sách Khách Hàng</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên</th>
+                        <th>Email</th>
+                        <th>Số ĐT</th>
+                        <th>Tổng ĐH</th>
+                        <th>Ngày tạo</th>
+                    </tr>
+                </thead>
+                <tbody id="customersTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Orders Section -->
+        <div id="orders" class="content-section">
+            <h2>Danh Sách Đơn Hàng</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Khách hàng</th>
+                        <th>Gói dịch vụ</th>
+                        <th>Giá</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Clients Section -->
+        <div id="clients" class="content-section">
+            <h2>Danh Sách Clients</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Email</th>
+                        <th>Khách hàng</th>
+                        <th>Hết hạn</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTable"></tbody>
+            </table>
+        </div>
+
+        <!-- Packages Section -->
+        <div id="packages" class="content-section">
+            <h2>Quản Lý Gói Dịch Vụ</h2>
+            <button class="btn btn-primary" onclick="showAddPackageModal()">➕ Thêm Gói Mới</button>
+            <table style="margin-top: 20px;">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên gói</th>
+                        <th>Thời hạn</th>
+                        <th>Dung lượng</th>
+                        <th>Giá</th>
+                        <th>Kết nối</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="packagesTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Package Modal -->
+    <div id="addPackageModal" class="modal">
+        <div class="modal-content">
+            <h3>Thêm Gói Dịch Vụ Mới</h3>
+            <form onsubmit="handleAddPackage(event)">
+                <div class="form-group">
+                    <label>Tên gói</label>
+                    <input type="text" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>Mô tả</label>
+                    <textarea name="description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Thời hạn (ngày)</label>
+                    <input type="number" name="duration_days" required>
+                </div>
+                <div class="form-group">
+                    <label>Dung lượng (GB, 0 = không giới hạn)</label>
+                    <input type="number" name="data_limit_gb" required>
+                </div>
+                <div class="form-group">
+                    <label>Giá (VNĐ)</label>
+                    <input type="number" name="price" required>
+                </div>
+                <div class="form-group">
+                    <label>Số kết nối tối đa</label>
+                    <input type="number" name="max_connections" required>
+                </div>
+                <button type="submit" class="btn btn-success">Thêm</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('addPackageModal')">Hủy</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStats();
+            loadCustomers();
+            loadOrders();
+            loadClients();
+            loadPackages();
+
+            // Setup navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const section = link.dataset.section;
+                    
+                    // Update active nav
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    
+                    // Show section
+                    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+                    document.getElementById(section).classList.add('active');
+                });
+            });
+        });
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/admin/api/stats');
+                const data = await response.json();
+                
+                document.getElementById('totalCustomers').textContent = data.totalCustomers;
+                document.getElementById('totalOrders').textContent = data.totalOrders;
+                document.getElementById('totalRevenue').textContent = formatPrice(data.totalRevenue) + 'đ';
+                document.getElementById('activeClients').textContent = data.activeClients;
+            } catch (error) {
+                console.error('Lỗi load stats:', error);
+            }
+        }
+
+        async function loadCustomers() {
+            try {
+                const response = await fetch('/admin/api/customers');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('customersTable');
+                tbody.innerHTML = data.customers.map(c => `
+                    <tr>
+                        <td>${c.id}</td>
+                        <td>${c.name}</td>
+                        <td>${c.email}</td>
+                        <td>${c.phone || '-'}</td>
+                        <td>${c.total_orders}</td>
+                        <td>${new Date(c.created_at).toLocaleDateString('vi-VN')}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Lỗi load customers:', error);
+            }
+        }
+
+        async function loadOrders() {
+            try {
+                const response = await fetch('/admin/api/orders');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('ordersTable');
+                tbody.innerHTML = data.orders.map(o => `
+                    <tr>
+                        <td>${o.id}</td>
+                        <td>${o.customer_name}<br><small>${o.customer_email}</small></td>
+                        <td>${o.package_name}</td>
+                        <td>${formatPrice(o.total_amount)}đ</td>
+                        <td><span class="badge badge-${o.status}">${o.status}</span></td>
+                        <td>${new Date(o.created_at).toLocaleDateString('vi-VN')}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Lỗi load orders:', error);
+            }
+        }
+
+        async function loadClients() {
+            try {
+                const response = await fetch('/admin/api/clients');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('clientsTable');
+                tbody.innerHTML = data.clients.map(c => `
+                    <tr>
+                        <td>${c.id}</td>
+                        <td>${c.email}</td>
+                        <td>${c.customer_name}<br><small>${c.customer_email}</small></td>
+                        <td>${new Date(c.expiry_date).toLocaleDateString('vi-VN')}</td>
+                        <td><span class="badge badge-${c.status === 'active' ? 'active' : 'inactive'}">${c.status}</span></td>
+                        <td>
+                            ${c.status === 'active' ? 
+                                `<button class="btn btn-warning" onclick="disableClient(${c.id})">Vô hiệu hóa</button>` :
+                                `<button class="btn btn-success" onclick="enableClient(${c.id})">Kích hoạt</button>`
+                            }
+                            <button class="btn btn-danger" onclick="deleteClient(${c.id})">Xóa</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Lỗi load clients:', error);
+            }
+        }
+
+        async function loadPackages() {
+            try {
+                const response = await fetch('/api/packages');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('packagesTable');
+                tbody.innerHTML = data.packages.map(p => `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${p.name}</td>
+                        <td>${p.duration_days} ngày</td>
+                        <td>${p.data_limit_gb ? p.data_limit_gb + ' GB' : 'Không giới hạn'}</td>
+                        <td>${formatPrice(p.price)}đ</td>
+                        <td>${p.max_connections}</td>
+                        <td>
+                            <button class="btn btn-danger" onclick="deletePackage(${p.id})">Xóa</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Lỗi load packages:', error);
+            }
+        }
+
+        async function disableClient(clientId) {
+            if (!confirm('Bạn có chắc muốn vô hiệu hóa client này?')) return;
+            
+            try {
+                const response = await fetch(`/admin/api/clients/${clientId}/disable`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Đã vô hiệu hóa client', 'success');
+                    loadClients();
+                    loadStats();
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Lỗi kết nối server', 'error');
+            }
+        }
+
+        async function enableClient(clientId) {
+            try {
+                const response = await fetch(`/admin/api/clients/${clientId}/enable`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Đã kích hoạt lại client', 'success');
+                    loadClients();
+                    loadStats();
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Lỗi kết nối server', 'error');
+            }
+        }
+
+        async function deleteClient(clientId) {
+            if (!confirm('Bạn có chắc muốn xóa client này? Hành động này không thể hoàn tác!')) return;
+            
+            try {
+                const response = await fetch(`/admin/api/clients/${clientId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Đã xóa client', 'success');
+                    loadClients();
+                    loadStats();
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Lỗi kết nối server', 'error');
+            }
+        }
+
+        async function deletePackage(packageId) {
+            if (!confirm('Bạn có chắc muốn xóa gói dịch vụ này?')) return;
+            
+            try {
+                const response = await fetch(`/admin/api/packages/${packageId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Đã xóa gói dịch vụ', 'success');
+                    loadPackages();
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Lỗi kết nối server', 'error');
+            }
+        }
+
+        function showAddPackageModal() {
+            document.getElementById('addPackageModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        async function handleAddPackage(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            
+            try {
+                const response = await fetch('/admin/api/packages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: formData.get('name'),
+                        description: formData.get('description'),
+                        duration_days: parseInt(formData.get('duration_days')),
+                        data_limit_gb: parseInt(formData.get('data_limit_gb')),
+                        price: parseFloat(formData.get('price')),
+                        max_connections: parseInt(formData.get('max_connections'))
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Đã thêm gói dịch vụ mới', 'success');
+                    closeModal('addPackageModal');
+                    loadPackages();
+                    event.target.reset();
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Lỗi kết nối server', 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        function formatPrice(price) {
+            return new Intl.NumberFormat('vi-VN').format(price);
+        }
+    </script>
+</body>
+</html>
