@@ -1,0 +1,58 @@
+{
+  "xui_panels": {
+    "server1": {
+      "url": "https://your-xui-server.com:54321",
+      "username": "admin",
+      "password": "your_password",
+      "default_inbound_id": 1
+    }
+  },
+  "threexui_panels": {
+    "server1": {
+      "url": "https://your-3xui-server.com:2053",
+      "username": "admin",
+      "password": "your_password",
+      "default_inbound_id": 1
+    },
+    "server2": {
+      "url": "https://your-3xui-server2.com:2053",
+      "username": "admin",
+      "password": "your_password",
+      "default_inbound_id": 1
+    }
+  },
+  "plans": {
+    "basic": {
+      "panel_type": "3x-ui",
+      "data_limit_gb": 50,
+      "duration_days": 30,
+      "protocol": "vmess",
+      "network": "tcp",
+      "security": "none",
+      "limit_ip": 2
+    },
+    "premium": {
+      "panel_type": "3x-ui",
+      "data_limit_gb": 200,
+      "duration_days": 30,
+      "protocol": "vmess",
+      "network": "ws",
+      "security": "tls",
+      "limit_ip": 5
+    },
+    "enterprise": {
+      "panel_type": "3x-ui",
+      "data_limit_gb": 500,
+      "duration_days": 30,
+      "protocol": "vless",
+      "network": "grpc",
+      "security": "tls",
+      "limit_ip": 0
+    }
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "api_key": "your_secret_api_key_here"
+  }
+}
