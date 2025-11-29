@@ -50,6 +50,11 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+# Additional configuration for better compatibility
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching in development
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['EXPLAIN_TEMPLATE_LOADING'] = False
+
 # Configuration
 XRAY_PANEL_URL = os.environ.get('XRAY_PANEL_URL', 'http://74.81.55.39:8001')
 XRAY_ADMIN_EMAIL = os.environ.get('XRAY_ADMIN_EMAIL', 'admin@vpnvietnam.com')
