@@ -295,6 +295,19 @@ def update_inbound(session, host, inbound_id, inbounds, new_remark=None, new_day
         up = current['up']
         down = current['down']
         
+        # FIX: settings và streamSettings phải là string nếu đang là dict
+        settings_str = current['settings']
+        if isinstance(settings_str, dict):
+            settings_str = json.dumps(settings_str)
+        
+        stream_settings_str = current['streamSettings']
+        if isinstance(stream_settings_str, dict):
+            stream_settings_str = json.dumps(stream_settings_str)
+        
+        sniffing_str = current.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
+        if isinstance(sniffing_str, dict):
+            sniffing_str = json.dumps(sniffing_str)
+        
         payload = {
             "up": up,
             "down": down,
@@ -305,9 +318,9 @@ def update_inbound(session, host, inbound_id, inbounds, new_remark=None, new_day
             "listen": current.get('listen', ''),
             "port": current['port'],
             "protocol": current['protocol'],
-            "settings": current['settings'],
-            "streamSettings": current['streamSettings'],
-            "sniffing": current.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
+            "settings": settings_str,
+            "streamSettings": stream_settings_str,
+            "sniffing": sniffing_str
         }
         
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
@@ -323,9 +336,36 @@ def reset_traffic(session, host, inbound_id, inbounds):
         target = next((x for x in inbounds if x['id'] == inbound_id), None)
         if not target:
             return False
-        target['up'] = 0
-        target['down'] = 0
-        resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=target, timeout=10)
+        
+        # FIX: Stringify settings nếu cần
+        settings_str = target['settings']
+        if isinstance(settings_str, dict):
+            settings_str = json.dumps(settings_str)
+        
+        stream_settings_str = target['streamSettings']
+        if isinstance(stream_settings_str, dict):
+            stream_settings_str = json.dumps(stream_settings_str)
+        
+        sniffing_str = target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
+        if isinstance(sniffing_str, dict):
+            sniffing_str = json.dumps(sniffing_str)
+        
+        payload = {
+            "up": 0,
+            "down": 0,
+            "total": target['total'],
+            "remark": target['remark'],
+            "enable": target['enable'],
+            "expiryTime": target['expiryTime'],
+            "listen": target.get('listen', ''),
+            "port": target['port'],
+            "protocol": target['protocol'],
+            "settings": settings_str,
+            "streamSettings": stream_settings_str,
+            "sniffing": sniffing_str
+        }
+        
+        resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
         return resp.status_code == 200
     except:
         return False
@@ -343,8 +383,35 @@ def extend_expiry(session, host, inbound_id, additional_days, inbounds):
         else:
             new_expiry = current_expiry + (additional_days * 86400 * 1000)
         
-        target['expiryTime'] = new_expiry
-        resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=target, timeout=10)
+        # FIX: Stringify settings nếu cần
+        settings_str = target['settings']
+        if isinstance(settings_str, dict):
+            settings_str = json.dumps(settings_str)
+        
+        stream_settings_str = target['streamSettings']
+        if isinstance(stream_settings_str, dict):
+            stream_settings_str = json.dumps(stream_settings_str)
+        
+        sniffing_str = target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
+        if isinstance(sniffing_str, dict):
+            sniffing_str = json.dumps(sniffing_str)
+        
+        payload = {
+            "up": target['up'],
+            "down": target['down'],
+            "total": target['total'],
+            "remark": target['remark'],
+            "enable": target['enable'],
+            "expiryTime": new_expiry,
+            "listen": target.get('listen', ''),
+            "port": target['port'],
+            "protocol": target['protocol'],
+            "settings": settings_str,
+            "streamSettings": stream_settings_str,
+            "sniffing": sniffing_str
+        }
+        
+        resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
         return resp.status_code == 200
     except:
         return False
@@ -355,8 +422,36 @@ def toggle_inbound(session, host, inbound_id, enable, inbounds):
         target = next((x for x in inbounds if x['id'] == inbound_id), None)
         if not target:
             return False
-        target['enable'] = enable
-        resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=target, timeout=10)
+        
+        # FIX: Stringify settings nếu cần
+        settings_str = target['settings']
+        if isinstance(settings_str, dict):
+            settings_str = json.dumps(settings_str)
+        
+        stream_settings_str = target['streamSettings']
+        if isinstance(stream_settings_str, dict):
+            stream_settings_str = json.dumps(stream_settings_str)
+        
+        sniffing_str = target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
+        if isinstance(sniffing_str, dict):
+            sniffing_str = json.dumps(sniffing_str)
+        
+        payload = {
+            "up": target['up'],
+            "down": target['down'],
+            "total": target['total'],
+            "remark": target['remark'],
+            "enable": enable,
+            "expiryTime": target['expiryTime'],
+            "listen": target.get('listen', ''),
+            "port": target['port'],
+            "protocol": target['protocol'],
+            "settings": settings_str,
+            "streamSettings": stream_settings_str,
+            "sniffing": sniffing_str
+        }
+        
+        resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
         return resp.status_code == 200
     except:
         return False
@@ -1102,4 +1197,4 @@ elif servers and menu in ["📊 Dashboard Server", "➕ Tạo User", "👥 Quả
                     st.write(f"**{proto.upper()}:** {data['count']} user, {data['traffic']:.2f} GB")
 
 st.write("---")
-st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3 - Enhanced User Management")
+st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3.1 - Bugfix: Update Functions")
