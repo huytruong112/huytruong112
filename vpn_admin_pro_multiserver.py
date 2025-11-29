@@ -202,7 +202,28 @@ def get_inbounds(session, host):
     try:
         resp = session.post(f"{host}/xui/inbound/list", timeout=10)
         if resp.status_code == 200:
-            return resp.json().get('obj', [])
+            inbounds = resp.json().get('obj', [])
+            # Parse JSON strings to ensure consistency
+            for inbound in inbounds:
+                # Parse settings if it's a string
+                if isinstance(inbound.get('settings'), str):
+                    try:
+                        inbound['settings'] = json.loads(inbound['settings'])
+                    except:
+                        pass
+                # Parse streamSettings if it's a string
+                if isinstance(inbound.get('streamSettings'), str):
+                    try:
+                        inbound['streamSettings'] = json.loads(inbound['streamSettings'])
+                    except:
+                        pass
+                # Parse sniffing if it's a string
+                if isinstance(inbound.get('sniffing'), str):
+                    try:
+                        inbound['sniffing'] = json.loads(inbound['sniffing'])
+                    except:
+                        pass
+            return inbounds
         return []
     except:
         return []
@@ -291,26 +312,10 @@ def update_inbound(session, host, inbound_id, inbounds, new_remark=None, new_day
         else:
             total_bytes = current['total']
         
-        # Giữ nguyên up/down hiện tại
-        up = current['up']
-        down = current['down']
-        
-        # FIX: settings và streamSettings phải là string nếu đang là dict
-        settings_str = current['settings']
-        if isinstance(settings_str, dict):
-            settings_str = json.dumps(settings_str)
-        
-        stream_settings_str = current['streamSettings']
-        if isinstance(stream_settings_str, dict):
-            stream_settings_str = json.dumps(stream_settings_str)
-        
-        sniffing_str = current.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
-        if isinstance(sniffing_str, dict):
-            sniffing_str = json.dumps(sniffing_str)
-        
+        # Build payload - stringify settings
         payload = {
-            "up": up,
-            "down": down,
+            "up": current['up'],
+            "down": current['down'],
             "total": total_bytes,
             "remark": remark,
             "enable": current['enable'],
@@ -318,9 +323,9 @@ def update_inbound(session, host, inbound_id, inbounds, new_remark=None, new_day
             "listen": current.get('listen', ''),
             "port": current['port'],
             "protocol": current['protocol'],
-            "settings": settings_str,
-            "streamSettings": stream_settings_str,
-            "sniffing": sniffing_str
+            "settings": json.dumps(current['settings']) if isinstance(current['settings'], dict) else current['settings'],
+            "streamSettings": json.dumps(current['streamSettings']) if isinstance(current['streamSettings'], dict) else current['streamSettings'],
+            "sniffing": json.dumps(current.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(current.get('sniffing'), dict) else current.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
         }
         
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
@@ -337,19 +342,7 @@ def reset_traffic(session, host, inbound_id, inbounds):
         if not target:
             return False
         
-        # FIX: Stringify settings nếu cần
-        settings_str = target['settings']
-        if isinstance(settings_str, dict):
-            settings_str = json.dumps(settings_str)
-        
-        stream_settings_str = target['streamSettings']
-        if isinstance(stream_settings_str, dict):
-            stream_settings_str = json.dumps(stream_settings_str)
-        
-        sniffing_str = target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
-        if isinstance(sniffing_str, dict):
-            sniffing_str = json.dumps(sniffing_str)
-        
+        # Build payload - stringify settings
         payload = {
             "up": 0,
             "down": 0,
@@ -360,14 +353,15 @@ def reset_traffic(session, host, inbound_id, inbounds):
             "listen": target.get('listen', ''),
             "port": target['port'],
             "protocol": target['protocol'],
-            "settings": settings_str,
-            "streamSettings": stream_settings_str,
-            "sniffing": sniffing_str
+            "settings": json.dumps(target['settings']) if isinstance(target['settings'], dict) else target['settings'],
+            "streamSettings": json.dumps(target['streamSettings']) if isinstance(target['streamSettings'], dict) else target['streamSettings'],
+            "sniffing": json.dumps(target.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(target.get('sniffing'), dict) else target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
         }
         
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
-        return resp.status_code == 200
-    except:
+        return resp.status_code == 200 and "success" in resp.text.lower()
+    except Exception as e:
+        st.error(f"Reset traffic error: {str(e)}")
         return False
 
 def extend_expiry(session, host, inbound_id, additional_days, inbounds):
@@ -383,19 +377,7 @@ def extend_expiry(session, host, inbound_id, additional_days, inbounds):
         else:
             new_expiry = current_expiry + (additional_days * 86400 * 1000)
         
-        # FIX: Stringify settings nếu cần
-        settings_str = target['settings']
-        if isinstance(settings_str, dict):
-            settings_str = json.dumps(settings_str)
-        
-        stream_settings_str = target['streamSettings']
-        if isinstance(stream_settings_str, dict):
-            stream_settings_str = json.dumps(stream_settings_str)
-        
-        sniffing_str = target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
-        if isinstance(sniffing_str, dict):
-            sniffing_str = json.dumps(sniffing_str)
-        
+        # Build payload - stringify settings
         payload = {
             "up": target['up'],
             "down": target['down'],
@@ -406,14 +388,15 @@ def extend_expiry(session, host, inbound_id, additional_days, inbounds):
             "listen": target.get('listen', ''),
             "port": target['port'],
             "protocol": target['protocol'],
-            "settings": settings_str,
-            "streamSettings": stream_settings_str,
-            "sniffing": sniffing_str
+            "settings": json.dumps(target['settings']) if isinstance(target['settings'], dict) else target['settings'],
+            "streamSettings": json.dumps(target['streamSettings']) if isinstance(target['streamSettings'], dict) else target['streamSettings'],
+            "sniffing": json.dumps(target.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(target.get('sniffing'), dict) else target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
         }
         
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
-        return resp.status_code == 200
-    except:
+        return resp.status_code == 200 and "success" in resp.text.lower()
+    except Exception as e:
+        st.error(f"Extend expiry error: {str(e)}")
         return False
 
 def toggle_inbound(session, host, inbound_id, enable, inbounds):
@@ -423,19 +406,7 @@ def toggle_inbound(session, host, inbound_id, enable, inbounds):
         if not target:
             return False
         
-        # FIX: Stringify settings nếu cần
-        settings_str = target['settings']
-        if isinstance(settings_str, dict):
-            settings_str = json.dumps(settings_str)
-        
-        stream_settings_str = target['streamSettings']
-        if isinstance(stream_settings_str, dict):
-            stream_settings_str = json.dumps(stream_settings_str)
-        
-        sniffing_str = target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
-        if isinstance(sniffing_str, dict):
-            sniffing_str = json.dumps(sniffing_str)
-        
+        # Build payload - stringify settings
         payload = {
             "up": target['up'],
             "down": target['down'],
@@ -446,14 +417,15 @@ def toggle_inbound(session, host, inbound_id, enable, inbounds):
             "listen": target.get('listen', ''),
             "port": target['port'],
             "protocol": target['protocol'],
-            "settings": settings_str,
-            "streamSettings": stream_settings_str,
-            "sniffing": sniffing_str
+            "settings": json.dumps(target['settings']) if isinstance(target['settings'], dict) else target['settings'],
+            "streamSettings": json.dumps(target['streamSettings']) if isinstance(target['streamSettings'], dict) else target['streamSettings'],
+            "sniffing": json.dumps(target.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(target.get('sniffing'), dict) else target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
         }
         
         resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
-        return resp.status_code == 200
-    except:
+        return resp.status_code == 200 and "success" in resp.text.lower()
+    except Exception as e:
+        st.error(f"Toggle error: {str(e)}")
         return False
 
 # --- GIAO DIỆN CHÍNH ---
@@ -1197,4 +1169,4 @@ elif servers and menu in ["📊 Dashboard Server", "➕ Tạo User", "👥 Quả
                     st.write(f"**{proto.upper()}:** {data['count']} user, {data['traffic']:.2f} GB")
 
 st.write("---")
-st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3.1 - Bugfix: Update Functions")
+st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3.2 - Critical Bugfix: Parse JSON")
