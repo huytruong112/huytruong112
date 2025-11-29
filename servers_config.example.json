@@ -1,0 +1,26 @@
+{
+  "example_id_001": {
+    "name": "VPS Singapore - Premium",
+    "host": "http://123.45.67.89:8001",
+    "username": "admin",
+    "password": "your_secure_password_here",
+    "notes": "Server for VIP customers | 4GB RAM | Expires: 31/12/2024",
+    "added_date": "2024-11-28T14:30:00"
+  },
+  "example_id_002": {
+    "name": "VPS Japan - Backup",
+    "host": "http://234.56.78.90:8001",
+    "username": "admin",
+    "password": "another_secure_password",
+    "notes": "Backup server | 2GB RAM | Provider: AWS",
+    "added_date": "2024-11-28T15:00:00"
+  },
+  "example_id_003": {
+    "name": "VPS USA West - Gaming",
+    "host": "http://345.67.89.01:8001",
+    "username": "admin",
+    "password": "yet_another_password",
+    "notes": "Low latency for gaming | 8GB RAM | DigitalOcean",
+    "added_date": "2024-11-28T16:00:00"
+  }
+}

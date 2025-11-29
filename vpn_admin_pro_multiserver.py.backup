@@ -1,0 +1,1175 @@
+import streamlit as st
+import requests
+import json
+import time
+import uuid
+import random
+import pandas as pd
+import qrcode
+from io import BytesIO
+import psutil
+from PIL import Image
+import base64
+from datetime import datetime, timedelta
+import os
+
+# --- CẤU HÌNH MULTI-SERVER ---
+SERVERS_CONFIG_FILE = "servers_config.json"
+
+# --- HÀM QUẢN LÝ SERVER CONFIG ---
+def load_servers():
+    """Load danh sách server từ file JSON"""
+    if os.path.exists(SERVERS_CONFIG_FILE):
+        try:
+            with open(SERVERS_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # FIX: Đảm bảo luôn return dict, không phải list
+                if isinstance(data, dict):
+                    return data
+                else:
+                    return {}
+        except Exception as e:
+            st.error(f"Lỗi đọc file config: {str(e)}")
+            return {}
+    return {}
+
+def save_servers(servers):
+    """Lưu danh sách server vào file JSON"""
+    try:
+        # FIX: Đảm bảo servers là dict
+        if not isinstance(servers, dict):
+            servers = {}
+        
+        with open(SERVERS_CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(servers, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        st.error(f"Lỗi lưu file config: {str(e)}")
+        return False
+
+def add_server(name, host, username, password, notes=""):
+    """Thêm server mới"""
+    try:
+        servers = load_servers()
+        # FIX: Double check servers là dict
+        if not isinstance(servers, dict):
+            servers = {}
+        
+        server_id = str(uuid.uuid4())[:8]
+        servers[server_id] = {
+            "name": name,
+            "host": host,
+            "username": username,
+            "password": password,
+            "notes": notes,
+            "added_date": datetime.now().isoformat()
+        }
+        save_servers(servers)
+        return server_id
+    except Exception as e:
+        st.error(f"Lỗi thêm server: {str(e)}")
+        return None
+
+def update_server(server_id, name, host, username, password, notes=""):
+    """Cập nhật thông tin server"""
+    try:
+        servers = load_servers()
+        if not isinstance(servers, dict):
+            return False
+        
+        if server_id not in servers:
+            st.error(f"Server ID {server_id} không tồn tại!")
+            return False
+        
+        # Giữ lại added_date cũ
+        old_added_date = servers[server_id].get('added_date', datetime.now().isoformat())
+        
+        servers[server_id] = {
+            "name": name,
+            "host": host,
+            "username": username,
+            "password": password,
+            "notes": notes,
+            "added_date": old_added_date,
+            "updated_date": datetime.now().isoformat()
+        }
+        save_servers(servers)
+        return True
+    except Exception as e:
+        st.error(f"Lỗi cập nhật server: {str(e)}")
+        return False
+
+def delete_server(server_id):
+    """Xóa server"""
+    try:
+        servers = load_servers()
+        if not isinstance(servers, dict):
+            return False
+        
+        if server_id in servers:
+            del servers[server_id]
+            save_servers(servers)
+            return True
+        return False
+    except Exception as e:
+        st.error(f"Lỗi xóa server: {str(e)}")
+        return False
+
+def get_server_config(server_id):
+    """Lấy config của 1 server"""
+    try:
+        servers = load_servers()
+        if not isinstance(servers, dict):
+            return None
+        return servers.get(server_id, None)
+    except:
+        return None
+
+# --- HÀM HỖ TRỢ HỆ THỐNG ---
+def get_system_stats():
+    """Lấy thông tin CPU, RAM, Disk của VPS hiện tại"""
+    try:
+        cpu_usage = psutil.cpu_percent(interval=None)
+        ram_info = psutil.virtual_memory()
+        disk_info = psutil.disk_usage('/')
+        return {
+            'cpu': cpu_usage,
+            'ram_percent': ram_info.percent,
+            'ram_used': ram_info.used / (1024**3),
+            'ram_total': ram_info.total / (1024**3),
+            'disk_percent': disk_info.percent,
+            'disk_used': disk_info.used / (1024**3),
+            'disk_total': disk_info.total / (1024**3)
+        }
+    except:
+        return None
+
+def generate_qr(data):
+    """Tạo ảnh QR Code từ text"""
+    try:
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        return buf.getvalue()
+    except Exception as e:
+        st.error(f"Lỗi tạo QR: {str(e)}")
+        return None
+
+def generate_link(inbound, vps_ip):
+    """Tạo link kết nối từ thông tin inbound"""
+    try:
+        settings = json.loads(inbound['settings'])
+        protocol = inbound['protocol']
+        port = inbound['port']
+        remark = inbound['remark']
+        
+        if protocol == 'vless':
+            client_id = settings['clients'][0]['id']
+            link = f"vless://{client_id}@{vps_ip}:{port}?security=none&encryption=none&type=tcp&headerType=none#{remark}"
+        elif protocol == 'vmess':
+            client_id = settings['clients'][0]['id']
+            vmess_json = {
+                "v": "2", "ps": remark, "add": vps_ip, "port": port,
+                "id": client_id, "aid": "0", "net": "tcp", "type": "none",
+                "host": "", "tls": ""
+            }
+            link = "vmess://" + base64.b64encode(json.dumps(vmess_json).encode()).decode()
+        else:
+            link = f"Không hỗ trợ protocol {protocol}"
+        return link
+    except Exception as e:
+        return f"Lỗi: {str(e)}"
+
+# --- HÀM TƯƠNG TÁC API ---
+def get_session(host, username, password):
+    """Đăng nhập vào panel"""
+    session = requests.Session()
+    try:
+        login = session.post(f"{host}/login", data={"username": username, "password": password}, timeout=10)
+        if login.status_code == 200 and "success" in login.text.lower():
+            return session
+        return None
+    except Exception as e:
+        st.error(f"Lỗi kết nối {host}: {str(e)}")
+        return None
+
+def get_inbounds(session, host):
+    """Lấy danh sách inbound"""
+    try:
+        resp = session.post(f"{host}/xui/inbound/list", timeout=10)
+        if resp.status_code == 200:
+            inbounds = resp.json().get('obj', [])
+            # Parse JSON strings to ensure consistency
+            for inbound in inbounds:
+                # Parse settings if it's a string
+                if isinstance(inbound.get('settings'), str):
+                    try:
+                        inbound['settings'] = json.loads(inbound['settings'])
+                    except:
+                        pass
+                # Parse streamSettings if it's a string
+                if isinstance(inbound.get('streamSettings'), str):
+                    try:
+                        inbound['streamSettings'] = json.loads(inbound['streamSettings'])
+                    except:
+                        pass
+                # Parse sniffing if it's a string
+                if isinstance(inbound.get('sniffing'), str):
+                    try:
+                        inbound['sniffing'] = json.loads(inbound['sniffing'])
+                    except:
+                        pass
+            return inbounds
+        return []
+    except:
+        return []
+
+def create_inbound(session, host, remark, days, protocol, data_limit_gb, vps_ip):
+    """Tạo inbound mới"""
+    new_uuid = str(uuid.uuid4())
+    new_port = random.randint(10000, 60000)
+    expiry_time = int(time.time() * 1000) + (days * 86400 * 1000)
+    total_bytes = data_limit_gb * 1024 * 1024 * 1024 if data_limit_gb > 0 else 0
+    
+    settings = {
+        "clients": [{"id": new_uuid, "email": remark, "flow": ""}],
+        "decryption": "none", "fallbacks": []
+    }
+    stream = {
+        "network": "tcp", "security": "none",
+        "tcpSettings": {"header": {"type": "none"}}
+    }
+    
+    if protocol == "vmess":
+        settings = {"clients": [{"id": new_uuid, "alterId": 0}], "disableInsecureEncryption": False}
+
+    payload = {
+        "up": 0, "down": 0, "total": total_bytes, "remark": remark,
+        "enable": True, "expiryTime": expiry_time, "listen": "",
+        "port": new_port, "protocol": protocol,
+        "settings": json.dumps(settings),
+        "streamSettings": json.dumps(stream),
+        "sniffing": json.dumps({"enabled": True, "destOverride": ["http", "tls"]})
+    }
+    
+    try:
+        resp = session.post(f"{host}/xui/inbound/add", data=payload, timeout=10)
+        if resp.status_code == 200 and "success" in resp.text.lower():
+            return {"uuid": new_uuid, "port": new_port, "protocol": protocol}, "OK"
+        return None, resp.text
+    except Exception as e:
+        return None, str(e)
+
+def delete_inbound(session, host, inbound_id):
+    """Xóa inbound"""
+    try:
+        resp = session.post(f"{host}/xui/inbound/del/{inbound_id}", timeout=10)
+        return resp.status_code == 200
+    except:
+        return False
+
+def bulk_delete_inbounds(session, host, inbound_ids):
+    """Xóa nhiều inbound cùng lúc"""
+    success_count = 0
+    failed_count = 0
+    
+    for inbound_id in inbound_ids:
+        try:
+            resp = session.post(f"{host}/xui/inbound/del/{inbound_id}", timeout=10)
+            if resp.status_code == 200:
+                success_count += 1
+            else:
+                failed_count += 1
+        except:
+            failed_count += 1
+    
+    return success_count, failed_count
+
+def update_inbound(session, host, inbound_id, inbounds, new_remark=None, new_days=None, new_data_limit_gb=None):
+    """Cập nhật thông tin inbound - WORKAROUND"""
+    try:
+        st.warning("⚠️ **Chức năng Edit User hiện không hoạt động do API issue**")
+        st.info("""
+        **WORKAROUND:**
+        1. Xóa user này (button 🗑️ - ✅ hoạt động)
+        2. Tạo user mới với thông tin mới (✅ hoạt động)
+        
+        Hoặc edit trực tiếp trên 3X-UI panel gốc.
+        """)
+        return False, "API update không hoạt động - Vui lòng xóa và tạo lại"
+    except Exception as e:
+        return False, str(e)
+
+def reset_traffic(session, host, inbound_id, inbounds):
+    """Reset traffic của inbound - TRY SPECIALIZED ENDPOINT"""
+    try:
+        # Try specialized reset endpoint
+        resp = session.post(
+            f"{host}/xui/inbound/resetAllTraffics",
+            json={"id": inbound_id},
+            timeout=10
+        )
+        
+        if resp.status_code == 200:
+            st.success("✅ Đã reset traffic!")
+            return True
+        
+        # Try alternative endpoint
+        resp = session.post(
+            f"{host}/xui/inbound/resetClientTraffic/{inbound_id}",
+            timeout=10
+        )
+        
+        if resp.status_code == 200:
+            st.success("✅ Đã reset traffic!")
+            return True
+        
+        st.warning("⚠️ Reset traffic không hoạt động qua API")
+        st.info("ℹ️ Vui lòng reset trực tiếp trên 3X-UI panel")
+        return False
+        
+    except Exception as e:
+        st.error(f"❌ Reset traffic error: {str(e)}")
+        return False
+
+def extend_expiry(session, host, inbound_id, additional_days, inbounds):
+    """Gia hạn thêm ngày"""
+    try:
+        target = next((x for x in inbounds if x['id'] == inbound_id), None)
+        if not target:
+            st.error("❌ Không tìm thấy inbound!")
+            return False
+        
+        current_expiry = target['expiryTime']
+        if current_expiry < int(time.time() * 1000):
+            new_expiry = int(time.time() * 1000) + (additional_days * 86400 * 1000)
+        else:
+            new_expiry = current_expiry + (additional_days * 86400 * 1000)
+        
+        # Build payload - stringify settings
+        payload = {
+            "up": target['up'],
+            "down": target['down'],
+            "total": target['total'],
+            "remark": target['remark'],
+            "enable": target['enable'],
+            "expiryTime": new_expiry,
+            "listen": target.get('listen', ''),
+            "port": target['port'],
+            "protocol": target['protocol'],
+            "settings": json.dumps(target['settings']) if isinstance(target['settings'], dict) else target['settings'],
+            "streamSettings": json.dumps(target['streamSettings']) if isinstance(target['streamSettings'], dict) else target['streamSettings'],
+            "sniffing": json.dumps(target.get('sniffing', {"enabled": True, "destOverride": ["http", "tls"]})) if isinstance(target.get('sniffing'), dict) else target.get('sniffing', '{"enabled":true,"destOverride":["http","tls"]}')
+        }
+        
+        # DEBUG
+        with st.expander("🔍 Debug - Gia hạn", expanded=True):
+            st.write("**Old expiry:**", current_expiry)
+            st.write("**New expiry:**", new_expiry)
+            st.write("**Diff days:**", (new_expiry - current_expiry) / (86400 * 1000))
+            st.write("---")
+            st.write("**FULL PAYLOAD:**")
+            st.json({k: str(v)[:200] if len(str(v)) > 200 else v for k, v in payload.items()})
+        
+        resp = session.post(f"{host}/xui/inbound/update/{inbound_id}", data=payload, timeout=10)
+        
+        with st.expander("🔍 Debug Response", expanded=False):
+            st.write("**Status:**", resp.status_code)
+            st.write("**Response:**", resp.text[:500])
+        
+        if resp.status_code == 200:
+            if "success" in resp.text.lower():
+                return True
+            else:
+                st.error(f"❌ API: {resp.text[:200]}")
+                return False
+        else:
+            st.error(f"❌ HTTP {resp.status_code}")
+            return False
+    except Exception as e:
+        st.error(f"❌ Extend error: {str(e)}")
+        import traceback
+        st.code(traceback.format_exc())
+        return False
+
+def toggle_inbound(session, host, inbound_id, enable, inbounds):
+    """Bật/tắt inbound - TRY SIMPLE METHOD"""
+    try:
+        target = next((x for x in inbounds if x['id'] == inbound_id), None)
+        if not target:
+            st.error("❌ Không tìm thấy inbound!")
+            return False
+        
+        # Try simple payload
+        simple_payload = {
+            "id": inbound_id,
+            "enable": enable
+        }
+        
+        with st.expander("🔍 Debug - Toggle", expanded=False):
+            st.write("**Trying simple method:**")
+            st.json(simple_payload)
+        
+        resp = session.post(
+            f"{host}/xui/inbound/update/{inbound_id}",
+            json=simple_payload,
+            timeout=10
+        )
+        
+        if resp.status_code == 200 and "success" in resp.text.lower():
+            return True
+        
+        st.warning(f"⚠️ Toggle không hoạt động: HTTP {resp.status_code}")
+        st.info("ℹ️ Vui lòng toggle trực tiếp trên 3X-UI panel")
+        return False
+        
+    except Exception as e:
+        st.error(f"❌ Toggle error: {str(e)}")
+        return False
+
+# --- GIAO DIỆN CHÍNH ---
+st.set_page_config(page_title="VPN Admin Pro - Multi-Server", page_icon="🌐", layout="wide")
+
+st.markdown("""
+<style>
+    .metric-card {background-color: #f0f2f6; padding: 15px; border-radius: 10px; border-left: 5px solid #ff4b4b;}
+    div[data-testid="stMetricValue"] {font-size: 24px;}
+    .stButton>button {border-radius: 8px; font-weight: 600;}
+    .server-card {background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; color: white; margin: 10px 0;}
+</style>
+""", unsafe_allow_html=True)
+
+# SIDEBAR
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/9664/9664780.png", width=100)
+    st.title("🌐 Multi-Server Admin")
+    
+    # FIX: Force reload fresh data mỗi lần render
+    servers = load_servers()
+    
+    # FIX: Kiểm tra servers là dict
+    if not isinstance(servers, dict):
+        st.error("⚠️ Lỗi: Config file không đúng định dạng. Đang tạo mới...")
+        servers = {}
+        save_servers(servers)
+    
+    if not servers:
+        st.warning("⚠️ Chưa có server nào. Vào menu Quản lý Server để thêm!")
+        menu = st.radio("Menu", ["🖥️ Quản Lý Server"])
+    else:
+        # FIX: Hiển thị số lượng server
+        st.success(f"✅ {len(servers)} server")
+        
+        # Chọn server
+        server_options = {f"{s['name']} ({s['host']})": sid for sid, s in servers.items()}
+        
+        # FIX: Default selection
+        if 'current_server_id' not in st.session_state or st.session_state.current_server_id not in servers:
+            st.session_state.current_server_id = list(servers.keys())[0]
+        
+        selected_server_name = st.selectbox("📡 Chọn Server", list(server_options.keys()))
+        st.session_state.current_server_id = server_options[selected_server_name]
+        
+        st.write("---")
+        menu = st.radio("Menu", [
+            "🌍 Tổng Quan Toàn Hệ Thống",
+            "📊 Dashboard Server",
+            "➕ Tạo User",
+            "👥 Quản Lý User",
+            "📋 Chi Tiết User",
+            "🖥️ Quản Lý Server",
+            "⚙️ Hệ Thống"
+        ])
+    
+    st.write("---")
+    st.caption(f"🕒 {datetime.now().strftime('%H:%M:%S - %d/%m/%Y')}")
+    
+    if st.button("🔄 Làm mới", use_container_width=True):
+        # FIX: Clear cache khi refresh
+        if 'current_server_id' in st.session_state:
+            del st.session_state['current_server_id']
+        st.rerun()
+
+# --- MENU: TỔNG QUAN TOÀN HỆ THỐNG ---
+if menu == "🌍 Tổng Quan Toàn Hệ Thống":
+    st.header("🌍 Tổng quan tất cả Server")
+    
+    servers = load_servers()
+    
+    if not isinstance(servers, dict) or not servers:
+        st.info("ℹ️ Chưa có server nào. Vào menu 'Quản lý Server' để thêm!")
+    else:
+        # Metrics tổng hợp
+        total_servers = len(servers)
+        total_users_all = 0
+        total_traffic_all = 0
+        online_servers = 0
+        
+        server_data = []
+        
+        for sid, sconfig in servers.items():
+            with st.spinner(f"Đang kết nối {sconfig['name']}..."):
+                session = get_session(sconfig['host'], sconfig['username'], sconfig['password'])
+                
+                if session:
+                    online_servers += 1
+                    inbounds = get_inbounds(session, sconfig['host'])
+                    total_users = len(inbounds)
+                    total_traffic = sum([x['up'] + x['down'] for x in inbounds]) / (1024**3)
+                    active_users = len([x for x in inbounds if x['enable']])
+                    status = "🟢 Online"
+                else:
+                    total_users = 0
+                    total_traffic = 0
+                    active_users = 0
+                    status = "🔴 Offline"
+                
+                total_users_all += total_users
+                total_traffic_all += total_traffic
+                
+                vps_ip = sconfig['host'].split("//")[-1].split(":")[0]
+                
+                server_data.append({
+                    "ID": sid,
+                    "Server": sconfig['name'],
+                    "IP": vps_ip,
+                    "Status": status,
+                    "Users": total_users,
+                    "Active": active_users,
+                    "Traffic (GB)": round(total_traffic, 2)
+                })
+        
+        # Hiển thị metrics tổng
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("🖥️ Tổng Server", total_servers)
+        col2.metric("🟢 Server Online", online_servers)
+        col3.metric("👥 Tổng User", total_users_all)
+        col4.metric("📊 Tổng Traffic", f"{total_traffic_all:.2f} GB")
+        
+        st.write("---")
+        
+        # Bảng chi tiết server
+        st.subheader("📋 Chi tiết từng Server")
+        df = pd.DataFrame(server_data)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        st.write("---")
+        
+        # Biểu đồ
+        if len(server_data) > 0:
+            col_chart1, col_chart2 = st.columns(2)
+            
+            with col_chart1:
+                st.subheader("📈 Phân bổ User theo Server")
+                chart_df = pd.DataFrame(server_data)[['Server', 'Users']].set_index('Server')
+                st.bar_chart(chart_df)
+            
+            with col_chart2:
+                st.subheader("📊 Traffic theo Server")
+                chart_df2 = pd.DataFrame(server_data)[['Server', 'Traffic (GB)']].set_index('Server')
+                st.bar_chart(chart_df2)
+
+# --- MENU: QUẢN LÝ SERVER ---
+elif menu == "🖥️ Quản lý Server":
+    st.header("🖥️ Quản lý danh sách Server")
+    
+    tab1, tab2 = st.tabs(["📋 Danh sách Server", "➕ Thêm Server Mới"])
+    
+    with tab1:
+        # FIX: Force reload fresh data
+        servers = load_servers()
+        
+        if not isinstance(servers, dict) or not servers:
+            st.info("ℹ️ Chưa có server nào. Thêm server mới ở tab bên cạnh!")
+        else:
+            # FIX: Hiển thị số lượng server
+            st.success(f"✅ Đang quản lý **{len(servers)}** server")
+            st.write("---")
+            
+            for sid, sconfig in servers.items():
+                with st.container(border=True):
+                    # Header row với các nút action
+                    col_header1, col_header2 = st.columns([3, 1])
+                    
+                    with col_header1:
+                        st.subheader(f"🖥️ {sconfig['name']}")
+                    
+                    with col_header2:
+                        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
+                        with col_btn1:
+                            show_detail = st.button("👁️", key=f"detail_{sid}", help="Xem chi tiết")
+                        with col_btn2:
+                            test_conn = st.button("🔍", key=f"test_{sid}", help="Test kết nối")
+                        with col_btn3:
+                            edit_server = st.button("✏️", key=f"edit_{sid}", help="Sửa server")
+                        with col_btn4:
+                            delete_btn = st.button("🗑️", key=f"del_{sid}", help="Xóa server", type="primary")
+                    
+                    # Info row
+                    col_info1, col_info2 = st.columns([2, 1])
+                    
+                    with col_info1:
+                        st.caption(f"**🌐 Host:** `{sconfig['host']}`")
+                        st.caption(f"**👤 Username:** `{sconfig['username']}`")
+                        if sconfig.get('notes'):
+                            st.caption(f"**📝 Ghi chú:** {sconfig['notes']}")
+                    
+                    with col_info2:
+                        st.caption(f"**📅 Thêm:** {sconfig.get('added_date', 'N/A')[:10]}")
+                        if sconfig.get('updated_date'):
+                            st.caption(f"**🔄 Sửa:** {sconfig.get('updated_date', 'N/A')[:10]}")
+                        st.caption(f"**🆔 ID:** `{sid}`")
+                    
+                    # Actions
+                    if show_detail:
+                        with st.expander("📋 Chi tiết Server", expanded=True):
+                            st.json({
+                                "ID": sid,
+                                "Name": sconfig['name'],
+                                "Host": sconfig['host'],
+                                "Username": sconfig['username'],
+                                "Password": "***" + sconfig['password'][-3:] if len(sconfig['password']) > 3 else "***",
+                                "Notes": sconfig.get('notes', ''),
+                                "Added Date": sconfig.get('added_date', 'N/A'),
+                                "Updated Date": sconfig.get('updated_date', 'N/A')
+                            })
+                            
+                            # Copy buttons
+                            col_copy1, col_copy2, col_copy3 = st.columns(3)
+                            with col_copy1:
+                                st.code(sconfig['host'], language="text")
+                                st.caption("↑ Host (click để copy)")
+                            with col_copy2:
+                                st.code(sconfig['username'], language="text")
+                                st.caption("↑ Username")
+                            with col_copy3:
+                                st.code(sconfig['password'], language="text")
+                                st.caption("↑ Password")
+                    
+                    if test_conn:
+                        with st.spinner("Đang test kết nối..."):
+                            test_session = get_session(sconfig['host'], sconfig['username'], sconfig['password'])
+                            if test_session:
+                                st.success("✅ Kết nối OK!")
+                            else:
+                                st.error("❌ Không kết nối được!")
+                    
+                    if edit_server:
+                        with st.expander("✏️ Sửa Server", expanded=True):
+                            edit_form_key = f"edit_form_{sid}_{int(time.time() * 1000)}"
+                            
+                            with st.form(key=edit_form_key):
+                                st.info(f"🆔 Đang sửa server: **{sconfig['name']}** (ID: `{sid}`)")
+                                
+                                edit_name = st.text_input("Tên Server", value=sconfig['name'])
+                                edit_host = st.text_input("HOST", value=sconfig['host'])
+                                edit_username = st.text_input("Username", value=sconfig['username'])
+                                edit_password = st.text_input("Password", value=sconfig['password'], type="password")
+                                edit_notes = st.text_area("Ghi chú", value=sconfig.get('notes', ''))
+                                
+                                col_save, col_cancel = st.columns(2)
+                                with col_save:
+                                    save_edit = st.form_submit_button("💾 Lưu thay đổi", use_container_width=True, type="primary")
+                                with col_cancel:
+                                    cancel_edit = st.form_submit_button("❌ Hủy", use_container_width=True)
+                                
+                                if save_edit:
+                                    if not all([edit_name, edit_host, edit_username, edit_password]):
+                                        st.error("⚠️ Vui lòng điền đầy đủ thông tin!")
+                                    else:
+                                        # Test connection trước khi lưu
+                                        with st.spinner("Đang test kết nối..."):
+                                            test_session = get_session(edit_host, edit_username, edit_password)
+                                            if test_session:
+                                                if update_server(sid, edit_name, edit_host, edit_username, edit_password, edit_notes):
+                                                    st.success(f"✅ Đã cập nhật server '{edit_name}'!")
+                                                    # Clear cache
+                                                    if 'current_server_id' in st.session_state:
+                                                        del st.session_state['current_server_id']
+                                                    time.sleep(1.5)
+                                                    st.rerun()
+                                                else:
+                                                    st.error("❌ Lỗi khi cập nhật server!")
+                                            else:
+                                                st.error("❌ Không thể kết nối! Kiểm tra lại thông tin.")
+                                
+                                if cancel_edit:
+                                    st.info("Đã hủy chỉnh sửa.")
+                                    st.rerun()
+                    
+                    if delete_btn:
+                        # Lưu state để confirm
+                        st.session_state[f'confirm_delete_{sid}'] = True
+                    
+                    # Confirm delete
+                    if st.session_state.get(f'confirm_delete_{sid}', False):
+                        st.warning(f"⚠️ Xác nhận xóa server **{sconfig['name']}**?")
+                        col_yes, col_no = st.columns(2)
+                        with col_yes:
+                            if st.button("✅ Xác nhận xóa", key=f"confirm_del_yes_{sid}", type="primary"):
+                                if delete_server(sid):
+                                    st.success(f"✅ Đã xóa server {sconfig['name']}!")
+                                    # Clear cache
+                                    if 'current_server_id' in st.session_state:
+                                        del st.session_state['current_server_id']
+                                    if f'confirm_delete_{sid}' in st.session_state:
+                                        del st.session_state[f'confirm_delete_{sid}']
+                                    time.sleep(1)
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Xóa thất bại!")
+                        with col_no:
+                            if st.button("❌ Hủy xóa", key=f"confirm_del_no_{sid}"):
+                                if f'confirm_delete_{sid}' in st.session_state:
+                                    del st.session_state[f'confirm_delete_{sid}']
+                                st.rerun()
+    
+    with tab2:
+        st.subheader("➕ Thêm Server mới")
+        
+        # FIX: Dùng unique key và clear_on_submit để reset form
+        form_key = f"add_server_form_{int(time.time() * 1000)}"
+        
+        with st.form(key=form_key, clear_on_submit=True):
+            new_name = st.text_input("Tên Server", placeholder="VPS Singapore 01")
+            new_host = st.text_input("HOST (URL đầy đủ)", placeholder="http://123.45.67.89:8001")
+            new_username = st.text_input("Username", placeholder="admin")
+            new_password = st.text_input("Password", type="password")
+            new_notes = st.text_area("Ghi chú (optional)", placeholder="Server cho khách VIP...")
+            
+            col_submit, col_cancel = st.columns(2)
+            with col_submit:
+                submitted = st.form_submit_button("✅ Thêm Server", use_container_width=True, type="primary")
+            with col_cancel:
+                canceled = st.form_submit_button("❌ Hủy", use_container_width=True)
+            
+            if submitted:
+                if not all([new_name, new_host, new_username, new_password]):
+                    st.error("⚠️ Vui lòng điền đầy đủ thông tin!")
+                else:
+                    # Test kết nối trước
+                    with st.spinner("Đang test kết nối..."):
+                        test_session = get_session(new_host, new_username, new_password)
+                        if test_session:
+                            server_id = add_server(new_name, new_host, new_username, new_password, new_notes)
+                            if server_id:
+                                st.balloons()
+                                st.success(f"✅ Đã thêm server '{new_name}' thành công!")
+                                st.info("📋 Chuyển sang tab 'Danh sách Server' để xem...")
+                                
+                                # FIX: Clear cache và reload
+                                if 'current_server_id' in st.session_state:
+                                    del st.session_state['current_server_id']
+                                
+                                time.sleep(2)
+                                st.rerun()
+                            else:
+                                st.error("❌ Lỗi khi lưu server!")
+                        else:
+                            st.error("❌ Không thể kết nối! Kiểm tra lại HOST, USERNAME, PASSWORD.")
+            
+            if canceled:
+                st.info("Đã hủy thao tác.")
+
+# --- CÁC MENU KHÁC ---
+elif servers and menu in ["📊 Dashboard Server", "➕ Tạo User", "👥 Quản Lý User", "📋 Chi Tiết User", "⚙️ Hệ Thống"]:
+    
+    # Lấy config server hiện tại
+    current_server_id = st.session_state.current_server_id
+    server_config = get_server_config(current_server_id)
+    
+    if not server_config:
+        st.error("❌ Server không tồn tại!")
+        st.stop()
+    
+    st.info(f"🖥️ Đang làm việc trên: **{server_config['name']}** ({server_config['host']})")
+    
+    # Kết nối
+    session = get_session(server_config['host'], server_config['username'], server_config['password'])
+    if not session:
+        st.error(f"❌ Không thể kết nối tới {server_config['name']}! Kiểm tra lại config.")
+        st.stop()
+    
+    inbounds = get_inbounds(session, server_config['host'])
+    vps_ip = server_config['host'].split("//")[-1].split(":")[0]
+    
+    # --- DASHBOARD SERVER ---
+    if menu == "📊 Dashboard Server":
+        st.header(f"📊 Dashboard - {server_config['name']}")
+        
+        total_users = len(inbounds)
+        total_traffic = sum([x['up'] + x['down'] for x in inbounds]) / (1024**3)
+        active_users = len([x for x in inbounds if x['enable']])
+        expired_users = len([x for x in inbounds if x['expiryTime'] > 0 and x['expiryTime'] < int(time.time() * 1000)])
+        
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("👥 Tổng User", total_users)
+        col2.metric("✅ Hoạt động", active_users)
+        col3.metric("📊 Traffic", f"{total_traffic:.2f} GB")
+        col4.metric("⚠️ Hết hạn", expired_users)
+        
+        st.write("---")
+        
+        # Tài nguyên (nếu chạy local trên VPS này)
+        stats = get_system_stats()
+        if stats:
+            st.subheader("🖥️ Tài nguyên Server")
+            col_cpu, col_ram, col_disk = st.columns(3)
+            with col_cpu:
+                st.metric("CPU", f"{stats['cpu']:.1f}%")
+                st.progress(min(stats['cpu'] / 100, 1.0))
+            with col_ram:
+                st.metric("RAM", f"{stats['ram_percent']:.1f}%")
+                st.progress(stats['ram_percent'] / 100)
+            with col_disk:
+                st.metric("Disk", f"{stats['disk_percent']:.1f}%")
+                st.progress(stats['disk_percent'] / 100)
+        
+        st.write("---")
+        
+        # Charts
+        if total_users > 0:
+            col1, col2 = st.columns(2)
+            with col1:
+                st.subheader("📈 Phân bổ Protocol")
+                proto_df = pd.DataFrame(inbounds)['protocol'].value_counts()
+                st.bar_chart(proto_df)
+            with col2:
+                st.subheader("🔝 Top 5 User")
+                top_users = sorted(inbounds, key=lambda x: x['up'] + x['down'], reverse=True)[:5]
+                top_df = pd.DataFrame([{
+                    'User': x['remark'],
+                    'Data (GB)': (x['up'] + x['down']) / (1024**3)
+                } for x in top_users])
+                st.dataframe(top_df, use_container_width=True, hide_index=True)
+    
+    # --- TẠO USER ---
+    elif menu == "➕ Tạo User":
+        st.header(f"➕ Tạo User mới - {server_config['name']}")
+        
+        with st.container(border=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                remark = st.text_input("Tên khách hàng", placeholder="user_01")
+                protocol = st.selectbox("Protocol", ["vless", "vmess"])
+            with col2:
+                days = st.slider("Thời hạn (ngày)", 1, 365, 30)
+                data_limit = st.number_input("Data Limit (GB, 0=unlimited)", 0, 1000, 0, 10)
+            
+            if st.button("✨ Tạo Ngay", type="primary", use_container_width=True):
+                if not remark:
+                    st.warning("⚠️ Nhập tên khách hàng!")
+                else:
+                    with st.spinner("Đang tạo..."):
+                        res, msg = create_inbound(session, server_config['host'], remark, days, protocol, data_limit, vps_ip)
+                    
+                    if res:
+                        st.balloons()
+                        st.success(f"✅ Đã tạo thành công!")
+                        
+                        if res['protocol'] == 'vless':
+                            link = f"vless://{res['uuid']}@{vps_ip}:{res['port']}?security=none&encryption=none&type=tcp&headerType=none#{remark}"
+                        else:
+                            vmess_json = {"v": "2", "ps": remark, "add": vps_ip, "port": res['port'], "id": res['uuid'], "aid": "0", "net": "tcp", "type": "none", "host": "", "tls": ""}
+                            link = "vmess://" + base64.b64encode(json.dumps(vmess_json).encode()).decode()
+                        
+                        col_link, col_qr = st.columns([3, 1])
+                        with col_link:
+                            st.text_area("Link:", link, height=100)
+                        with col_qr:
+                            qr_img = generate_qr(link)
+                            if qr_img:
+                                st.image(qr_img, width=200)
+                    else:
+                        st.error(f"❌ Lỗi: {msg}")
+    
+    # --- QUẢN LÝ USER ---
+    elif menu == "👥 Quản Lý User":
+        st.header(f"👥 Quản lý User - {server_config['name']}")
+        
+        # Search và Bulk Actions
+        col_search, col_bulk = st.columns([3, 1])
+        with col_search:
+            search = st.text_input("🔍 Tìm kiếm...", placeholder="Tên hoặc port...")
+        
+        if inbounds:
+            # Initialize session state for selected users
+            if 'selected_users' not in st.session_state:
+                st.session_state.selected_users = []
+            
+            filtered = []
+            for item in inbounds:
+                if search and (search.lower() not in item['remark'].lower() and search not in str(item['port'])):
+                    continue
+                
+                gb_used = (item['up'] + item['down']) / (1024**3)
+                gb_limit = item['total'] / (1024**3) if item['total'] > 0 else 0
+                exp_date = datetime.fromtimestamp(item['expiryTime']/1000).strftime('%d/%m/%Y') if item['expiryTime'] > 0 else "Vĩnh viễn"
+                status = "✅" if item['enable'] else "❌"
+                
+                filtered.append({
+                    "ID": item['id'],
+                    "Status": status,
+                    "User": item['remark'],
+                    "Port": item['port'],
+                    "Protocol": item['protocol'].upper(),
+                    "Data": f"{gb_used:.2f}/{gb_limit:.0f} GB" if gb_limit > 0 else f"{gb_used:.2f} GB",
+                    "Hết hạn": exp_date,
+                    "Raw": item
+                })
+            
+            if filtered:
+                with col_bulk:
+                    # Checkbox chọn tất cả
+                    select_all = st.checkbox("☑️ Chọn tất cả", key="select_all_users")
+                    if select_all:
+                        st.session_state.selected_users = [x['ID'] for x in filtered]
+                    elif not select_all and len(st.session_state.selected_users) == len(filtered):
+                        st.session_state.selected_users = []
+                
+                # Nút xóa hàng loạt
+                if st.session_state.selected_users:
+                    st.info(f"📋 Đã chọn: **{len(st.session_state.selected_users)}** user")
+                    
+                    col_bulk_action1, col_bulk_action2 = st.columns(2)
+                    with col_bulk_action1:
+                        if st.button("🗑️ Xóa hàng loạt", type="primary", use_container_width=True):
+                            st.session_state['confirm_bulk_delete'] = True
+                    with col_bulk_action2:
+                        if st.button("❌ Bỏ chọn", use_container_width=True):
+                            st.session_state.selected_users = []
+                            st.rerun()
+                    
+                    # Confirm bulk delete
+                    if st.session_state.get('confirm_bulk_delete', False):
+                        st.warning(f"⚠️ Xác nhận xóa **{len(st.session_state.selected_users)}** user đã chọn?")
+                        col_yes, col_no = st.columns(2)
+                        with col_yes:
+                            if st.button("✅ Xác nhận xóa hàng loạt", key="confirm_bulk_yes"):
+                                with st.spinner(f"Đang xóa {len(st.session_state.selected_users)} user..."):
+                                    success, failed = bulk_delete_inbounds(
+                                        session, 
+                                        server_config['host'], 
+                                        st.session_state.selected_users
+                                    )
+                                st.success(f"✅ Đã xóa: {success} user")
+                                if failed > 0:
+                                    st.error(f"❌ Lỗi: {failed} user")
+                                st.session_state.selected_users = []
+                                st.session_state['confirm_bulk_delete'] = False
+                                time.sleep(1.5)
+                                st.rerun()
+                        with col_no:
+                            if st.button("❌ Hủy xóa hàng loạt", key="confirm_bulk_no"):
+                                st.session_state['confirm_bulk_delete'] = False
+                                st.rerun()
+                
+                st.write("---")
+                
+                # Display users with checkbox và edit
+                for idx, item in enumerate(filtered):
+                    with st.container(border=True):
+                        col_check, col_info, col_actions = st.columns([0.5, 3, 2])
+                        
+                        with col_check:
+                            # Checkbox cho từng user
+                            is_checked = item['ID'] in st.session_state.selected_users
+                            if st.checkbox("", value=is_checked, key=f"check_{item['ID']}"):
+                                if item['ID'] not in st.session_state.selected_users:
+                                    st.session_state.selected_users.append(item['ID'])
+                            else:
+                                if item['ID'] in st.session_state.selected_users:
+                                    st.session_state.selected_users.remove(item['ID'])
+                        
+                        with col_info:
+                            st.markdown(f"**{item['Status']} {item['User']}** - Port: `{item['Port']}` - {item['Protocol']}")
+                            st.caption(f"📊 Data: {item['Data']} | 📅 Hết hạn: {item['Hết hạn']}")
+                        
+                        with col_actions:
+                            col_btn1, col_btn2, col_btn3, col_btn4, col_btn5 = st.columns(5)
+                            
+                            with col_btn1:
+                                if st.button("🔄", key=f"reset_{item['ID']}", help="Reset traffic"):
+                                    if reset_traffic(session, server_config['host'], item['ID'], inbounds):
+                                        st.success("✅ Reset!")
+                                        time.sleep(0.5)
+                                        st.rerun()
+                            
+                            with col_btn2:
+                                if st.button("⏱️", key=f"extend_{item['ID']}", help="Gia hạn +30d"):
+                                    if extend_expiry(session, server_config['host'], item['ID'], 30, inbounds):
+                                        st.success("✅ Gia hạn!")
+                                        time.sleep(0.5)
+                                        st.rerun()
+                            
+                            with col_btn3:
+                                action_icon = "⏸️" if item['Raw']['enable'] else "▶️"
+                                if st.button(action_icon, key=f"toggle_{item['ID']}", help="Bật/Tắt"):
+                                    if toggle_inbound(session, server_config['host'], item['ID'], not item['Raw']['enable'], inbounds):
+                                        st.success("✅ Đổi!")
+                                        time.sleep(0.5)
+                                        st.rerun()
+                            
+                            with col_btn4:
+                                if st.button("✏️", key=f"edit_{item['ID']}", help="Sửa"):
+                                    st.session_state[f'edit_mode_{item["ID"]}'] = True
+                                    st.rerun()
+                            
+                            with col_btn5:
+                                if st.button("🗑️", key=f"del_{item['ID']}", help="Xóa"):
+                                    st.session_state[f'confirm_delete_{item["ID"]}'] = True
+                        
+                        # Edit form
+                        if st.session_state.get(f'edit_mode_{item["ID"]}', False):
+                            with st.expander("✏️ Sửa User", expanded=True):
+                                edit_form_key = f"edit_user_form_{item['ID']}_{int(time.time() * 1000)}"
+                                
+                                with st.form(key=edit_form_key):
+                                    st.info(f"🆔 Đang sửa: **{item['User']}** (ID: `{item['ID']}`)")
+                                    
+                                    # Parse current values
+                                    current = item['Raw']
+                                    current_remark = current['remark']
+                                    current_days_left = max(0, int((current['expiryTime'] - time.time() * 1000) / (86400 * 1000))) if current['expiryTime'] > 0 else 0
+                                    current_data_limit = current['total'] / (1024**3) if current['total'] > 0 else 0
+                                    
+                                    col_edit1, col_edit2 = st.columns(2)
+                                    with col_edit1:
+                                        new_remark = st.text_input("Tên khách hàng", value=current_remark)
+                                        new_days = st.number_input("Thời hạn (ngày)", min_value=0, max_value=365, value=max(current_days_left, 30))
+                                    with col_edit2:
+                                        new_data_limit = st.number_input("Data Limit (GB, 0=unlimited)", min_value=0, max_value=1000, value=int(current_data_limit), step=10)
+                                    
+                                    col_save, col_cancel = st.columns(2)
+                                    with col_save:
+                                        save_edit = st.form_submit_button("💾 Lưu thay đổi", use_container_width=True, type="primary")
+                                    with col_cancel:
+                                        cancel_edit = st.form_submit_button("❌ Hủy", use_container_width=True)
+                                    
+                                    if save_edit:
+                                        if not new_remark:
+                                            st.error("⚠️ Tên không được trống!")
+                                        else:
+                                            with st.spinner("Đang cập nhật..."):
+                                                success, msg = update_inbound(
+                                                    session,
+                                                    server_config['host'],
+                                                    item['ID'],
+                                                    inbounds,
+                                                    new_remark=new_remark,
+                                                    new_days=new_days,
+                                                    new_data_limit_gb=new_data_limit
+                                                )
+                                            
+                                            if success:
+                                                st.success(f"✅ Đã cập nhật user '{new_remark}'!")
+                                                st.session_state[f'edit_mode_{item["ID"]}'] = False
+                                                time.sleep(1)
+                                                st.rerun()
+                                            else:
+                                                st.error(f"❌ Lỗi: {msg}")
+                                    
+                                    if cancel_edit:
+                                        st.session_state[f'edit_mode_{item["ID"]}'] = False
+                                        st.rerun()
+                        
+                        # Confirm delete single user
+                        if st.session_state.get(f'confirm_delete_{item["ID"]}', False):
+                            st.warning(f"⚠️ Xác nhận xóa **{item['User']}**?")
+                            col_yes, col_no = st.columns(2)
+                            with col_yes:
+                                if st.button("✅ Xác nhận", key=f"confirm_yes_{item['ID']}"):
+                                    if delete_inbound(session, server_config['host'], item['ID']):
+                                        st.success("✅ Đã xóa!")
+                                        st.session_state[f'confirm_delete_{item["ID"]}'] = False
+                                        time.sleep(0.5)
+                                        st.rerun()
+                            with col_no:
+                                if st.button("❌ Hủy", key=f"confirm_no_{item['ID']}"):
+                                    st.session_state[f'confirm_delete_{item["ID"]}'] = False
+                                    st.rerun()
+            else:
+                st.info("🔍 Không tìm thấy user nào phù hợp.")
+        else:
+            st.info("ℹ️ Chưa có user nào.")
+    
+    # --- CHI TIẾT USER ---
+    elif menu == "📋 Chi Tiết User":
+        st.header(f"📋 Chi tiết User - {server_config['name']}")
+        
+        if inbounds:
+            user_list = {f"{x['remark']} (Port {x['port']})": x['id'] for x in inbounds}
+            selected = st.selectbox("Chọn user:", list(user_list.keys()))
+            user_id = user_list[selected]
+            user_data = next((x for x in inbounds if x['id'] == user_id), None)
+            
+            if user_data:
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("📛 User", user_data['remark'])
+                    st.metric("🔌 Port", user_data['port'])
+                with col2:
+                    st.metric("🔧 Protocol", user_data['protocol'].upper())
+                    status = "✅ Hoạt động" if user_data['enable'] else "❌ Tắt"
+                    st.metric("Status", status)
+                with col3:
+                    exp_date = datetime.fromtimestamp(user_data['expiryTime']/1000).strftime('%d/%m/%Y') if user_data['expiryTime'] > 0 else "Vĩnh viễn"
+                    st.metric("Hết hạn", exp_date)
+                    gb_used = (user_data['up'] + user_data['down']) / (1024**3)
+                    st.metric("Data đã dùng", f"{gb_used:.2f} GB")
+                
+                st.write("---")
+                st.subheader("📱 Link kết nối")
+                link = generate_link(user_data, vps_ip)
+                col_link, col_qr = st.columns([2, 1])
+                with col_link:
+                    st.text_area("Link:", link, height=150)
+                with col_qr:
+                    qr_img = generate_qr(link)
+                    if qr_img:
+                        st.image(qr_img, width=250)
+        else:
+            st.info("ℹ️ Chưa có user.")
+    
+    # --- HỆ THỐNG ---
+    elif menu == "⚙️ Hệ Thống":
+        st.header(f"⚙️ Hệ thống - {server_config['name']}")
+        
+        tab1, tab2 = st.tabs(["💾 Backup", "📊 Thống kê"])
+        
+        with tab1:
+            if st.button("📥 Backup dữ liệu", type="primary"):
+                backup_data = {
+                    'timestamp': datetime.now().isoformat(),
+                    'server': server_config['name'],
+                    'inbounds': inbounds
+                }
+                backup_json = json.dumps(backup_data, indent=2, ensure_ascii=False)
+                st.download_button(
+                    "💾 Download JSON",
+                    backup_json,
+                    f"backup_{server_config['name']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                    "application/json"
+                )
+        
+        with tab2:
+            st.subheader("📊 Thống kê")
+            if inbounds:
+                # Protocol stats
+                proto_stats = {}
+                for item in inbounds:
+                    proto = item['protocol']
+                    if proto not in proto_stats:
+                        proto_stats[proto] = {'count': 0, 'traffic': 0}
+                    proto_stats[proto]['count'] += 1
+                    proto_stats[proto]['traffic'] += (item['up'] + item['down']) / (1024**3)
+                
+                for proto, data in proto_stats.items():
+                    st.write(f"**{proto.upper()}:** {data['count']} user, {data['traffic']:.2f} GB")
+
+st.write("---")
+st.caption("© 2024 VPN Admin Pro - Multi-Server Edition v2.3.3 - Debug Mode Enabled")
