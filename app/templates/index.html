@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý X-UI/3X-UI - Đăng ký dịch vụ</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Quản lý dịch vụ VPN</h1>
+            <p>Hệ thống tự động quản lý X-UI và 3X-UI</p>
+        </header>
+
+        <nav>
+            <a href="/" class="active">Đăng ký</a>
+            <a href="/dashboard">Quản lý</a>
+        </nav>
+
+        <main>
+            <div class="card">
+                <h2>📝 Đăng ký dịch vụ mới</h2>
+                
+                <form id="registrationForm">
+                    <div class="form-section">
+                        <h3>Thông tin khách hàng</h3>
+                        
+                        <div class="form-group">
+                            <label for="name">Họ và tên *</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone">Số điện thoại</label>
+                            <input type="tel" id="phone" name="phone">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="telegram_id">Telegram ID</label>
+                            <input type="text" id="telegram_id" name="telegram_id" placeholder="@username">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Cấu hình dịch vụ</h3>
+                        
+                        <div class="form-group">
+                            <label for="service_name">Tên gói dịch vụ</label>
+                            <select id="service_name" name="service_name">
+                                <option value="Basic Plan">Basic Plan</option>
+                                <option value="Standard Plan" selected>Standard Plan</option>
+                                <option value="Premium Plan">Premium Plan</option>
+                                <option value="Custom">Tùy chỉnh</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="traffic_limit_gb">Dung lượng (GB)</label>
+                            <input type="number" id="traffic_limit_gb" name="traffic_limit_gb" value="100" min="0">
+                            <small>Nhập 0 để không giới hạn</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expiry_days">Thời hạn (ngày)</label>
+                            <input type="number" id="expiry_days" name="expiry_days" value="30" min="0">
+                            <small>Nhập 0 để không giới hạn</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inbound_id">Inbound ID</label>
+                            <input type="number" id="inbound_id" name="inbound_id" value="1" min="1">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Đăng ký ngay</button>
+                        <button type="reset" class="btn btn-secondary">Xóa form</button>
+                    </div>
+                </form>
+
+                <div id="result" class="result" style="display: none;"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2025 VPN Management System | Powered by X-UI/3X-UI</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
