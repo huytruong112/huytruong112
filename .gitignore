@@ -1,0 +1,28 @@
+# Cấu hình hệ thống
+payment_config.php
+db.php
+
+# Log files
+logs/*.log
+logs/*.lock
+
+# Crontab example
+crontab_example.txt
+
+# Cache
+*.cache
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+temp/
