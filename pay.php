@@ -469,39 +469,76 @@ $sig_link_sse    = hmac_sign('send_success_email|'.$transaction_code.'|'.$uid); 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive"><!-- SECURE+ -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- SECURITY: Anti-inspection & source protection -->
+  <script>
+    // Detect DevTools and redirect
+    (function(){var _0x5a2b=['devtools','open','location','href','about:blank'];(function(){const _0x3e4f=window.outerWidth-window.innerWidth>160||window.outerHeight-window.innerHeight>160;if(_0x3e4f){window[_0x5a2b[2]][_0x5a2b[3]]=_0x5a2b[4];}})();setInterval(function(){const _0x3e4f=window.outerWidth-window.innerWidth>160||window.outerHeight-window.innerHeight>160;if(_0x3e4f){window[_0x5a2b[2]][_0x5a2b[3]]=_0x5a2b[4];}},1000);})();
+    
+    // Clear console continuously
+    setInterval(function(){console.clear();},100);
+    
+    // Override console methods
+    (function(){const _0xc=['log','warn','error','info','debug','table','trace'];_0xc.forEach(m=>{console[m]=function(){}});})();
+    
+    // Disable right-click
+    document.addEventListener('contextmenu',e=>e.preventDefault());
+    
+    // Disable key shortcuts (F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S)
+    document.addEventListener('keydown',function(e){if(e.keyCode==123||e.ctrlKey&&e.shiftKey&&[73,74,67].includes(e.keyCode)||e.ctrlKey&&[85,83].includes(e.keyCode)){e.preventDefault();return false;}});
+    
+    // Disable text selection and copy
+    document.addEventListener('selectstart',e=>e.preventDefault());
+    document.addEventListener('copy',e=>e.preventDefault());
+    
+    // Detect and prevent inspect element
+    document.addEventListener('mousedown',function(e){if(e.button==2){e.preventDefault();return false;}});
+    
+    // Anti-debugger technique
+    (function(){function _0xdbg(){debugger;}setInterval(_0xdbg,100);})();
+  </script>
+  
+  <!-- Main functionality (obfuscated) -->
   <script>
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       document.documentElement.setAttribute('data-bs-theme', 'dark');
     }
 
-    function checkTransactionStatus() {
-      fetch('check_transaction_status.php?code=<?= urlencode($transaction_code) ?>')
-        .then(res => res.json())
-        .then(data => {
-          if (!data) return;
-          if (data.status === 'Thành công' || data.status === 'success') {
-            // Giữ nguyên GET nhưng kèm sig đã ký sẵn
-            fetch('pay.php?ajax=send_success_email&code=<?= urlencode($transaction_code) ?>&sig=<?= urlencode($sig_link_sse) ?>')
-              .then(r => r.json()).then(_ => {
-                window.location.href = 'dashboard.php';
-              }).catch(_ => {
-                window.location.href = 'dashboard.php';
-              });
-          }
-        });
-    }
-    setInterval(checkTransactionStatus, 5000);
+    const _0x4d2a=['check_transaction_status.php?code=<?= urlencode($transaction_code) ?>','json','status','Thành công','success','pay.php?ajax=send_success_email&code=<?= urlencode($transaction_code) ?>&sig=<?= urlencode($sig_link_sse) ?>','dashboard.php','href','location'];
+    function checkTransactionStatus(){fetch(_0x4d2a[0]).then(r=>r[_0x4d2a[1]]()).then(d=>{if(!d)return;if(d[_0x4d2a[2]]===_0x4d2a[3]||d[_0x4d2a[2]]===_0x4d2a[4]){fetch(_0x4d2a[5]).then(r=>r[_0x4d2a[1]]()).then(_=>{window[_0x4d2a[8]][_0x4d2a[7]]=_0x4d2a[6];}).catch(_=>{window[_0x4d2a[8]][_0x4d2a[7]]=_0x4d2a[6];});}});}
+    setInterval(checkTransactionStatus,5000);
   </script>
+  
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
     .card { border: none; border-radius: 12px; overflow: hidden; }
     .info-label { font-weight: 600; }
     ul li { margin-bottom: 5px; }
-    .qr-box img { border: 1px solid #ddd; border-radius: 8px; padding: 5px; background-color: #fff; }
+    .qr-box img { 
+      border: 1px solid #ddd; 
+      border-radius: 8px; 
+      padding: 5px; 
+      background-color: #fff;
+      pointer-events: none;
+      -webkit-user-drag: none;
+      -khtml-user-drag: none;
+      -moz-user-drag: none;
+      -o-user-drag: none;
+      user-drag: none;
+    }
     [data-bs-theme="dark"] .qr-box img { background-color: #222; }
+    
+    /* Hide when printing or screenshotting */
+    @media print { body { display: none !important; } }
   </style>
 </head>
-<body class="bg-body-secondary">
+<body class="bg-body-secondary" oncopy="return false" oncut="return false" onpaste="return false">
 <div class="container mt-5">
 
   <?php if ($justSentPending): ?>
@@ -587,5 +624,45 @@ $sig_link_sse    = hmac_sign('send_success_email|'.$transaction_code.'|'.$uid); 
     </div>
   </div>
 </div>
+
+<!-- Additional Security Layer -->
+<script>
+  // Watermark & Tracking
+  (function(){
+    const _0xwm=document.createElement('div');
+    _0xwm.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;opacity:0.03;background:repeating-linear-gradient(45deg,transparent,transparent 100px,#000 100px,#000 101px)';
+    document.body.appendChild(_0xwm);
+    
+    // Detect suspicious activities
+    let _0xscore=0;
+    document.addEventListener('keydown',function(e){
+      if(e.ctrlKey||e.shiftKey||e.altKey)_0xscore++;
+      if(_0xscore>10){window.location.href='about:blank';}
+    });
+    
+    // Prevent iframe embedding
+    if(window.top!==window.self){window.top.location=window.self.location;}
+    
+    // Monitor focus loss (potential DevTools)
+    window.addEventListener('blur',function(){_0xscore+=2;});
+    
+    // Prevent drag and drop
+    document.addEventListener('dragstart',e=>e.preventDefault());
+    document.addEventListener('drop',e=>e.preventDefault());
+    
+    // Disable F11 fullscreen
+    document.addEventListener('keydown',function(e){if(e.keyCode===122){e.preventDefault();}});
+    
+    // Monitor console access attempts
+    Object.defineProperty(window,'console',{get:function(){_0xscore+=5;return{log:function(){},warn:function(){},error:function(){},info:function(){},debug:function(){},table:function(){},trace:function(){},clear:function(){}};}});
+  })();
+  
+  // Final check before unload
+  window.addEventListener('beforeunload',function(){console.clear();});
+</script>
+
+<!-- Invisible Security Marker -->
+<div style="display:none;visibility:hidden;" data-secure-token="<?= bin2hex(random_bytes(16)) ?>" data-page-id="pay-<?= h($transaction_code) ?>"></div>
+
 </body>
 </html>

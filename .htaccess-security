@@ -1,0 +1,243 @@
+# ============================================
+# SECURITY .HTACCESS - APACHE CONFIGURATION
+# Đổi tên file thành .htaccess để sử dụng
+# ============================================
+
+# ============================================
+# 1. SECURITY HEADERS
+# ============================================
+
+<IfModule mod_headers.c>
+    # Prevent MIME type sniffing
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Prevent clickjacking
+    Header set X-Frame-Options "DENY"
+    
+    # XSS Protection
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # Referrer Policy
+    Header set Referrer-Policy "no-referrer"
+    
+    # HSTS - Force HTTPS (chỉ enable khi đã có SSL)
+    # Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    
+    # Content Security Policy
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' https://img.vietqr.io https://vpnvietnam.com data:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; frame-ancestors 'none';"
+    
+    # Permissions Policy (formerly Feature Policy)
+    Header set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+    
+    # Remove server signature
+    Header unset Server
+    Header unset X-Powered-By
+</IfModule>
+
+# ============================================
+# 2. DISABLE DIRECTORY LISTING
+# ============================================
+Options -Indexes
+
+# ============================================
+# 3. PROTECT SENSITIVE FILES
+# ============================================
+
+# Protect config files
+<FilesMatch "^(config\.php|\.env|\.htaccess|\.htpasswd|composer\.json|composer\.lock|package\.json|README\.md)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Protect log files
+<FilesMatch "\.(log|txt)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Protect backup files
+<FilesMatch "\.(bak|backup|old|sql|zip|tar|gz)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Protect git files
+<FilesMatch "^\.git">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# ============================================
+# 4. FORCE HTTPS (uncomment when SSL ready)
+# ============================================
+
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteCond %{HTTPS} off
+#     RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# </IfModule>
+
+# ============================================
+# 5. PREVENT HOTLINKING
+# ============================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Block hotlinking of images
+    RewriteCond %{HTTP_REFERER} !^$
+    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?vpnvietnam\.com [NC]
+    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?user\.vpnvietnam\.com [NC]
+    RewriteRule \.(jpg|jpeg|png|gif|svg|webp)$ - [F,NC]
+</IfModule>
+
+# ============================================
+# 6. BLOCK BAD BOTS & SCRAPERS
+# ============================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP_USER_AGENT} ^.*(HTTrack|webcopy|webzip|wget|curl|Scrapy|EmailCollector|EmailSiphon|EmailWolf).*$ [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# ============================================
+# 7. PREVENT SQL INJECTION & XSS
+# ============================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Block SQL injection patterns
+    RewriteCond %{QUERY_STRING} (\<|%3C).*script.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} (\<|%3C).*iframe.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} SELECT.*FROM.*WHERE [NC,OR]
+    RewriteCond %{QUERY_STRING} UNION.*SELECT [NC,OR]
+    RewriteCond %{QUERY_STRING} INSERT.*INTO [NC,OR]
+    RewriteCond %{QUERY_STRING} DELETE.*FROM [NC,OR]
+    RewriteCond %{QUERY_STRING} DROP.*TABLE [NC,OR]
+    RewriteCond %{QUERY_STRING} UPDATE.*SET [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# ============================================
+# 8. LIMIT FILE UPLOAD SIZE (10MB)
+# ============================================
+
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+</IfModule>
+
+# ============================================
+# 9. DISABLE PHP EXECUTION IN UPLOADS
+# ============================================
+
+<Directory "uploads">
+    <FilesMatch "\.php$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+</Directory>
+
+# ============================================
+# 10. CACHE CONTROL FOR SECURITY FILES
+# ============================================
+
+<IfModule mod_headers.c>
+    # Never cache PHP files
+    <FilesMatch "\.(php)$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+    
+    # Cache static resources
+    <FilesMatch "\.(jpg|jpeg|png|gif|css|js|ico|svg|woff|woff2|ttf|eot)$">
+        Header set Cache-Control "public, max-age=2592000"
+    </FilesMatch>
+</IfModule>
+
+# ============================================
+# 11. LIMIT REQUEST METHODS
+# ============================================
+
+<LimitExcept GET POST>
+    Order Allow,Deny
+    Deny from all
+</LimitExcept>
+
+# ============================================
+# 12. BLOCK SUSPICIOUS IPs (Example)
+# ============================================
+
+# <RequireAll>
+#     Require all granted
+#     Require not ip 123.45.67.89
+#     Require not ip 98.76.54.32
+# </RequireAll>
+
+# ============================================
+# 13. CUSTOM ERROR PAGES (Security by obscurity)
+# ============================================
+
+ErrorDocument 400 /error.php
+ErrorDocument 401 /error.php
+ErrorDocument 403 /error.php
+ErrorDocument 404 /error.php
+ErrorDocument 500 /error.php
+
+# ============================================
+# 14. DISABLE SERVER SIGNATURE
+# ============================================
+
+ServerSignature Off
+
+# ============================================
+# 15. PROTECT AGAINST BRUTE FORCE
+# ============================================
+
+# Requires mod_evasive
+# <IfModule mod_evasive20.c>
+#     DOSHashTableSize 3097
+#     DOSPageCount 2
+#     DOSSiteCount 50
+#     DOSPageInterval 1
+#     DOSSiteInterval 1
+#     DOSBlockingPeriod 10
+# </IfModule>
+
+# ============================================
+# 16. COMPRESS RESPONSES (Performance + Security)
+# ============================================
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# ============================================
+# 17. CUSTOM RULES FOR PAY.PHP
+# ============================================
+
+<Files "pay.php">
+    # Rate limiting via PHP (already implemented in code)
+    # Additional server-level protection can be added here
+    
+    # Only allow access with valid transaction code
+    <IfModule mod_rewrite.c>
+        RewriteEngine On
+        RewriteCond %{QUERY_STRING} !code=
+        RewriteRule ^pay\.php$ /dashboard.php [R=302,L]
+    </IfModule>
+</Files>
+
+# ============================================
+# END OF SECURITY CONFIGURATION
+# ============================================
+
+# Ghi chú:
+# - Uncomment các dòng khi cần thiết
+# - Kiểm tra module Apache đã enable: a2enmod headers rewrite deflate
+# - Test kỹ trước khi deploy production
+# - Backup file .htaccess cũ trước khi thay thế

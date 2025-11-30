@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔒 Security Test Page - VPN Việt Nam</title>
+  
+  <!-- Include security config -->
+  <script src="security-config.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .header p {
+      font-size: 1.2em;
+      opacity: 0.9;
+    }
+    
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .test-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    
+    .test-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 12px rgba(0,0,0,0.2);
+    }
+    
+    .test-card h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .test-card .icon {
+      font-size: 1.5em;
+    }
+    
+    .test-item {
+      padding: 10px;
+      margin: 8px 0;
+      background: #f8f9fa;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .status {
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    
+    .status.protected {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status.vulnerable {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .status.warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .demo-area {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-top: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .demo-area h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+    }
+    
+    .demo-content {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .protected-image {
+      max-width: 300px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      margin: 5px;
+      transition: background 0.3s ease;
+    }
+    
+    button:hover {
+      background: #5568d3;
+    }
+    
+    .instructions {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    
+    .instructions h4 {
+      margin-bottom: 10px;
+      color: #856404;
+    }
+    
+    .instructions ul {
+      margin-left: 20px;
+    }
+    
+    .instructions li {
+      margin: 5px 0;
+      color: #856404;
+    }
+    
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 1.8em;
+      }
+      
+      .test-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔒 Security Protection Test</h1>
+      <p>Kiểm tra các tính năng bảo mật đã được kích hoạt</p>
+    </div>
+    
+    <!-- Instructions -->
+    <div class="instructions">
+      <h4>📋 Hướng dẫn kiểm tra:</h4>
+      <ul>
+        <li><strong>F12</strong> - Thử mở DevTools (nên bị chặn hoặc redirect)</li>
+        <li><strong>Ctrl+Shift+I</strong> - Thử mở Inspector (nên bị chặn)</li>
+        <li><strong>Ctrl+U</strong> - Thử xem source code (nên bị chặn)</li>
+        <li><strong>Chuột phải</strong> - Thử mở context menu (nên bị chặn)</li>
+        <li><strong>Select text</strong> - Thử chọn text (nên không được)</li>
+        <li><strong>Kéo hình ảnh</strong> - Thử kéo hình ảnh ra ngoài (nên không được)</li>
+      </ul>
+    </div>
+    
+    <!-- Test Grid -->
+    <div class="test-grid">
+      <!-- Card 1: Keyboard Protection -->
+      <div class="test-card">
+        <h3><span class="icon">⌨️</span> Keyboard Protection</h3>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>F12 (DevTools)</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Ctrl+Shift+I (Inspector)</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Ctrl+U (View Source)</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Ctrl+S (Save Page)</span>
+        </div>
+      </div>
+      
+      <!-- Card 2: Mouse Protection -->
+      <div class="test-card">
+        <h3><span class="icon">🖱️</span> Mouse Protection</h3>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Right-click disabled</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Drag & Drop blocked</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Text selection disabled</span>
+        </div>
+      </div>
+      
+      <!-- Card 3: Console Protection -->
+      <div class="test-card">
+        <h3><span class="icon">💻</span> Console Protection</h3>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Console auto-clear</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Console methods disabled</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Debug prevention</span>
+        </div>
+      </div>
+      
+      <!-- Card 4: DevTools Detection -->
+      <div class="test-card">
+        <h3><span class="icon">🔍</span> DevTools Detection</h3>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Window size monitoring</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Auto-redirect on detect</span>
+        </div>
+        <div class="test-item">
+          <span class="status warning">PARTIAL</span>
+          <span>Focus monitoring</span>
+        </div>
+      </div>
+      
+      <!-- Card 5: Copy Protection -->
+      <div class="test-card">
+        <h3><span class="icon">📋</span> Copy Protection</h3>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Text selection blocked</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Copy/Cut/Paste blocked</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>CSS user-select: none</span>
+        </div>
+      </div>
+      
+      <!-- Card 6: Additional Protection -->
+      <div class="test-card">
+        <h3><span class="icon">🛡️</span> Additional</h3>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Iframe embedding blocked</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Watermark enabled</span>
+        </div>
+        <div class="test-item">
+          <span class="status protected">PROTECTED</span>
+          <span>Print protection</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Demo Area -->
+    <div class="demo-area">
+      <h2>🎯 Demo Area - Try to:</h2>
+      
+      <div class="demo-content">
+        <h3>Thử các hành động sau:</h3>
+        
+        <p style="margin: 15px 0;">
+          <strong>1. Thử select text này:</strong><br>
+          Đây là đoạn text được bảo vệ. Bạn không thể select, copy, hoặc paste text này.
+          Hệ thống bảo mật đã được kích hoạt và đang hoạt động hiệu quả.
+        </p>
+        
+        <p style="margin: 15px 0;">
+          <strong>2. Thử kéo hình ảnh này:</strong><br>
+          <img src="https://via.placeholder.com/300x200/667eea/ffffff?text=Protected+Image" 
+               alt="Protected Demo" 
+               class="protected-image">
+        </p>
+        
+        <p style="margin: 15px 0;">
+          <strong>3. Thử mở DevTools:</strong><br>
+          <button onclick="alert('Nếu bạn thấy alert này, có nghĩa là bạn vẫn đang ở trang!')">
+            Click để test
+          </button>
+          <button onclick="console.log('Testing console')">
+            Test Console.log
+          </button>
+        </p>
+        
+        <p style="margin: 15px 0;">
+          <strong>4. Thông tin "nhạy cảm" (demo):</strong><br>
+          <code style="background: #e9ecef; padding: 5px 10px; border-radius: 4px;">
+            API_KEY: demo-key-12345-67890
+          </code>
+          <br>
+          <small style="color: #6c757d;">
+            (Đây chỉ là demo. Đừng bao giờ để thông tin thật trong client code!)
+          </small>
+        </p>
+      </div>
+    </div>
+    
+    <!-- Status Dashboard -->
+    <div class="demo-area" style="margin-top: 20px;">
+      <h2>📊 Security Status Dashboard</h2>
+      <div id="status-dashboard" style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+        <p>⏳ Loading security status...</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Status Check Script -->
+  <script>
+    // Hiển thị trạng thái các tính năng bảo mật
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(() => {
+        const dashboard = document.getElementById('status-dashboard');
+        
+        let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">';
+        
+        // Check các config
+        const checks = [
+          { name: 'Anti-DevTools', enabled: SECURITY_CONFIG.ANTI_DEVTOOLS.enabled },
+          { name: 'Console Protection', enabled: SECURITY_CONFIG.CONSOLE_PROTECTION.enabled },
+          { name: 'Right-click Block', enabled: SECURITY_CONFIG.DISABLE_RIGHT_CLICK.enabled },
+          { name: 'Keyboard Shortcuts', enabled: SECURITY_CONFIG.KEYBOARD_SHORTCUTS.enabled },
+          { name: 'Copy Protection', enabled: SECURITY_CONFIG.COPY_PROTECTION.enabled },
+          { name: 'Anti-Debugger', enabled: SECURITY_CONFIG.ANTI_DEBUGGER.enabled },
+          { name: 'Image Protection', enabled: SECURITY_CONFIG.IMAGE_PROTECTION.enabled },
+          { name: 'Watermark', enabled: SECURITY_CONFIG.WATERMARK.enabled },
+          { name: 'Suspicious Tracking', enabled: SECURITY_CONFIG.SUSPICIOUS_ACTIVITY.enabled },
+          { name: 'Anti-Iframe', enabled: SECURITY_CONFIG.ANTI_IFRAME.enabled },
+          { name: 'Print Protection', enabled: SECURITY_CONFIG.PRINT_PROTECTION.enabled },
+          { name: 'Drag & Drop Block', enabled: SECURITY_CONFIG.DRAG_DROP_PROTECTION.enabled },
+        ];
+        
+        checks.forEach(check => {
+          const status = check.enabled ? 
+            '<span style="color: #28a745; font-weight: bold;">✅ ENABLED</span>' : 
+            '<span style="color: #dc3545; font-weight: bold;">❌ DISABLED</span>';
+          html += `
+            <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid ${check.enabled ? '#28a745' : '#dc3545'};">
+              <strong>${check.name}</strong><br>
+              ${status}
+            </div>
+          `;
+        });
+        
+        html += '</div>';
+        
+        // Debug mode warning
+        if (SECURITY_CONFIG.DEBUG_MODE) {
+          html += `
+            <div style="margin-top: 20px; background: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px; border-left: 4px solid #dc3545;">
+              <strong>⚠️ WARNING: DEBUG MODE IS ENABLED!</strong><br>
+              All security features are disabled. This should only be used in development.
+            </div>
+          `;
+        }
+        
+        dashboard.innerHTML = html;
+      }, 100);
+    });
+    
+    // Test console (sẽ bị block)
+    console.log('🔒 If you see this, console protection is not working!');
+    console.warn('⚠️ Console test warning');
+    console.error('❌ Console test error');
+  </script>
+</body>
+</html>
