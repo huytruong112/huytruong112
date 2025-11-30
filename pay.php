@@ -460,6 +460,18 @@ if (isset($_GET['resend']) && $_GET['resend'] === '1' && $tx['status'] === 'pend
 $uid = (int)($_SESSION['user_id'] ?? 0);                                   // SECURE+
 $sig_link_resend = hmac_sign('resend|'.$transaction_code.'|'.$uid);        // SECURE+
 $sig_link_sse    = hmac_sign('send_success_email|'.$transaction_code.'|'.$uid); // SECURE+
+
+// Mã hóa thông tin nhạy cảm để ẩn khi view-source
+$sensitive_data = [
+    'bank_name' => $bank['bank_name'] ?? '',
+    'account_number' => $bank['account_number'] ?? '',
+    'account_holder' => $bank['account_holder'] ?? '',
+    'branch' => $bank['branch'] ?? '',
+    'qr_url' => $qr_url,
+    'unique_code' => $tx['unique_code'],
+    'status' => $tx['status']
+];
+$encoded_data = base64_encode(json_encode($sensitive_data));
 ?>
 <!DOCTYPE html>
 <html lang="vi" data-bs-theme="auto">
@@ -498,6 +510,9 @@ $sig_link_sse    = hmac_sign('send_success_email|'.$transaction_code.'|'.$uid); 
     (function(){function _0xdbg(){debugger;}setInterval(_0xdbg,100);})();
   </script>
   
+  <!-- Hidden encoded data -->
+  <script id="secure-data" type="application/x-custom-data" style="display:none !important;">/*<?= $encoded_data ?>*/</script>
+  
   <!-- Main functionality (obfuscated) -->
   <script>
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -507,6 +522,50 @@ $sig_link_sse    = hmac_sign('send_success_email|'.$transaction_code.'|'.$uid); 
     const _0x4d2a=['check_transaction_status.php?code=<?= urlencode($transaction_code) ?>','json','status','Thành công','success','pay.php?ajax=send_success_email&code=<?= urlencode($transaction_code) ?>&sig=<?= urlencode($sig_link_sse) ?>','dashboard.php','href','location'];
     function checkTransactionStatus(){fetch(_0x4d2a[0]).then(r=>r[_0x4d2a[1]]()).then(d=>{if(!d)return;if(d[_0x4d2a[2]]===_0x4d2a[3]||d[_0x4d2a[2]]===_0x4d2a[4]){fetch(_0x4d2a[5]).then(r=>r[_0x4d2a[1]]()).then(_=>{window[_0x4d2a[8]][_0x4d2a[7]]=_0x4d2a[6];}).catch(_=>{window[_0x4d2a[8]][_0x4d2a[7]]=_0x4d2a[6];});}});}
     setInterval(checkTransactionStatus,5000);
+    
+    // Decode và hiển thị thông tin nhạy cảm
+    document.addEventListener('DOMContentLoaded',function(){
+      try{
+        const _0xsd=document.getElementById('secure-data');
+        if(!_0xsd)return;
+        const _0xtxt=_0xsd.textContent.replace(/\/\*|\*\//g,'');
+        const _0xdata=JSON.parse(atob(_0xtxt));
+        const _0xbank=document.getElementById('bank-info-container');
+        const _0xqr=document.getElementById('qr-container');
+        
+        // Check status - chỉ hiển thị nếu không phải "Đã hủy"
+        if(_0xdata.status==='Đã hủy'||_0xdata.status==='cancelled'){
+          if(_0xbank)_0xbank.style.display='none';
+          return;
+        }
+        
+        if(_0xbank&&_0xdata.bank_name){
+          let _0xhtml='<h5 class="text-primary mb-3">🏦 Thông tin chuyển khoản:</h5><ul class="list-unstyled">';
+          _0xhtml+='<li><strong>Ngân hàng:</strong> '+_0xe(_0xdata.bank_name)+'</li>';
+          _0xhtml+='<li><strong>Số tài khoản:</strong> '+_0xe(_0xdata.account_number)+'</li>';
+          _0xhtml+='<li><strong>Chủ tài khoản:</strong> '+_0xe(_0xdata.account_holder)+'</li>';
+          if(_0xdata.branch)_0xhtml+='<li><strong>Chi nhánh:</strong> '+_0xe(_0xdata.branch)+'</li>';
+          _0xhtml+='<li><strong>Nội dung chuyển khoản:</strong> <span class="fw-bold text-danger">'+_0xe(_0xdata.unique_code)+'</span></li>';
+          _0xhtml+='</ul>';
+          _0xbank.innerHTML=_0xhtml;
+        }
+        
+        if(_0xqr&&_0xdata.qr_url){
+          let _0xqrhtml='<div class="text-center qr-box mt-4 mb-3">';
+          _0xqrhtml+='<p class="fw-semibold">📱 Quét mã QR để chuyển khoản nhanh:</p>';
+          _0xqrhtml+='<img referrerpolicy="no-referrer" src="'+_0xe(_0xdata.qr_url)+'" alt="QR Banking" class="img-fluid" style="max-width:280px;">';
+          _0xqrhtml+='</div>';
+          _0xqr.innerHTML=_0xqrhtml;
+        }
+        
+        _0xsd.remove();
+      }catch(e){}
+    });
+    
+    function _0xe(t){
+      const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+      return String(t||'').replace(/[&<>"']/g,c=>m[c]);
+    }
   </script>
   
   <style>
@@ -536,6 +595,22 @@ $sig_link_sse    = hmac_sign('send_success_email|'.$transaction_code.'|'.$uid); 
     
     /* Hide when printing or screenshotting */
     @media print { body { display: none !important; } }
+    
+    /* Loading state for bank info */
+    #bank-info-container:empty::before,
+    #qr-container:empty::before {
+      content: '⏳ Đang tải...';
+      color: #6c757d;
+      font-style: italic;
+    }
+    
+    /* Anti view-source protection */
+    #secure-data {
+      display: none !important;
+      visibility: hidden !important;
+      position: absolute !important;
+      left: -9999px !important;
+    }
   </style>
 </head>
 <body class="bg-body-secondary" oncopy="return false" oncut="return false" onpaste="return false">
@@ -582,26 +657,17 @@ $sig_link_sse    = hmac_sign('send_success_email|'.$transaction_code.'|'.$uid); 
       <hr>
       
       <?php if (!in_array($tx['status'], ['Đã hủy', 'cancelled'], true)): ?>
-        <h5 class="text-primary mb-3">🏦 Thông tin chuyển khoản:</h5>
-        <?php if (!empty($bank)): ?>
-          <ul class="list-unstyled">
-            <li><strong>Ngân hàng:</strong> <?= h($bank['bank_name']) ?></li>
-            <li><strong>Số tài khoản:</strong> <?= h($bank['account_number']) ?></li>
-            <li><strong>Chủ tài khoản:</strong> <?= h($bank['account_holder']) ?></li>
-            <?php if (!empty($bank['branch'])): ?>
-              <li><strong>Chi nhánh:</strong> <?= h($bank['branch']) ?></li>
-            <?php endif; ?>
-            <li><strong>Nội dung chuyển khoản:</strong> <span class="fw-bold text-danger"><?= h($tx['unique_code']) ?></span></li>
-          </ul>
-          <?php if (!empty($qr_url)): ?>
-            <div class="text-center qr-box mt-4 mb-3">
-              <p class="fw-semibold">📱 Quét mã QR để chuyển khoản nhanh:</p>
-              <img referrerpolicy="no-referrer" src="<?= h($qr_url) ?>" alt="QR Banking" class="img-fluid" style="max-width: 280px;"> <!-- SECURE+ -->
-            </div>
-          <?php endif; ?>
-        <?php else: ?>
-          <p class="text-danger">⚠️ Chưa thiết lập thông tin nhận chuyển khoản!</p>
-        <?php endif; ?>
+        <!-- Bank info will be injected by JavaScript -->
+        <div id="bank-info-container">
+          <h5 class="text-primary mb-3">🏦 Thông tin chuyển khoản:</h5>
+          <p class="text-muted">
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+            Đang tải thông tin thanh toán...
+          </p>
+        </div>
+        
+        <!-- QR will be injected by JavaScript -->
+        <div id="qr-container"></div>
 
         <div class="alert alert-warning mt-4" role="alert">
           ⚠️ Vui lòng nhập <strong>đúng nội dung chuyển khoản</strong> để hệ thống tự động xác nhận!
