@@ -1,0 +1,26 @@
+# Logs
+logs/
+*.log
+
+# Config với sensitive data
+config_payment.php
+
+# Database config
+db.php
+
+# Vendor
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+*.tmp
+*.bak
