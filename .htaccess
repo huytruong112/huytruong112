@@ -1,0 +1,94 @@
+# .htaccess - Bảo mật và cấu hình Apache
+
+# Bật rewrite engine
+RewriteEngine On
+
+# Chặn truy cập vào các file nhạy cảm
+<FilesMatch "^(payment_config\.php|db\.php|\.env|\.git)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Chặn truy cập vào thư mục logs
+<IfModule mod_rewrite.c>
+    RewriteRule ^logs/ - [F,L]
+</IfModule>
+
+# Bảo vệ file .htaccess
+<Files .htaccess>
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Tắt directory listing
+Options -Indexes
+
+# Bật HTTPS (nếu có SSL)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Bảo vệ khỏi SQL injection
+<IfModule mod_rewrite.c>
+    RewriteCond %{QUERY_STRING} (\<|%3C).*script.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2})
+    RewriteRule ^(.*)$ index.php [F,L]
+</IfModule>
+
+# Set timezone
+php_value date.timezone "Asia/Ho_Chi_Minh"
+
+# Tăng giới hạn upload (nếu cần)
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+php_value max_execution_time 300
+php_value max_input_time 300
+
+# Tắt display errors (production)
+# php_flag display_errors Off
+# php_flag display_startup_errors Off
+# php_value error_reporting 0
+
+# Bật gzip compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Cache static files
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    # Chặn clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # Chặn XSS
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Chặn MIME sniffing
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Referrer policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Content Security Policy (tùy chỉnh theo nhu cầu)
+    # Header always set Content-Security-Policy "default-src 'self'"
+</IfModule>
+
+# Chặn bad bots
+<IfModule mod_rewrite.c>
+    RewriteCond %{HTTP_USER_AGENT} ^.*(bot|spider|crawler|scraper).*$ [NC]
+    RewriteRule ^payment_webhook\.php$ - [F,L]
+</IfModule>
+
+# Error pages (tùy chọn)
+# ErrorDocument 404 /404.php
+# ErrorDocument 500 /500.php
