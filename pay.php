@@ -32,18 +32,43 @@ function rate_limited(string $key, int $max, int $window): bool {    // SECURE+
     return false;
 }
 
-/* ================= SECURE+: Obfuscation helper để ẩn dữ liệu trong HTML source ================= */
+/* ================= SECURE+: Advanced obfuscation để ẩn dữ liệu trong HTML source ================= */
 function obfuscate_data(string $data): string {
-    // Mã hóa dữ liệu nhạy cảm bằng base64 và thêm salt ngẫu nhiên
-    $salt = bin2hex(random_bytes(8));
-    $encoded = base64_encode($data);
-    return $salt . base64_encode(strrev($encoded));
+    // Sử dụng nhiều lớp mã hóa để tăng độ khó decode
+    $key = hash('sha256', APP_SECRET, true);
+    
+    // XOR encryption với key
+    $encrypted = '';
+    $dataLen = strlen($data);
+    $keyLen = strlen($key);
+    for ($i = 0; $i < $dataLen; $i++) {
+        $encrypted .= $data[$i] ^ $key[$i % $keyLen];
+    }
+    
+    // Thêm nhiều lớp obfuscation
+    $stage1 = base64_encode($encrypted);
+    $stage2 = strrev($stage1);
+    $stage3 = base64_encode($stage2);
+    $stage4 = str_rot13($stage3);
+    
+    // Thêm random salt và timestamp
+    $salt = bin2hex(random_bytes(16));
+    $timestamp = base64_encode(pack('N', time()));
+    
+    return $salt . $timestamp . base64_encode($stage4);
 }
 
 function create_secure_data_attribute(array $bankData): string {
     // Tạo JSON object và mã hóa
     $json = json_encode($bankData, JSON_UNESCAPED_UNICODE);
     return obfuscate_data($json);
+}
+
+function generate_qr_token(string $code): string {
+    // Tạo token ngẫu nhiên cho QR request
+    $uid = (int)($_SESSION['user_id'] ?? 0);
+    $payload = 'qr|' . $code . '|' . $uid;
+    return hash_hmac('sha256', $payload, APP_SECRET);
 }
 
 /* ================= SMTP config ================= */
@@ -437,12 +462,13 @@ $bank = $bankStmt ? $bankStmt->fetch(PDO::FETCH_ASSOC) : [];
 // SECURE+: Tạo dữ liệu mã hóa cho thông tin ngân hàng
 $secureData = create_secure_data_attribute($bank);
 
-// QR link - giữ nguyên vì cần thiết cho thanh toán
+// SECURE+: QR link thông qua proxy để ẩn thông tin ngân hàng
 $qr_url = '';
+$qr_token = '';
 if (!empty($bank['account_number']) && !empty($bank['bank_name'])) {
-    $bank_code = strtolower($bank['bank_name']);
-    $amount = (int)$tx['amount_paid'];
-    $qr_url = "https://img.vietqr.io/image/" . $bank_code . "-" . $bank['account_number'] . "-compact2.png?amount={$amount}&addInfo=" . urlencode($tx['unique_code']) . "&accountName=" . urlencode($bank['account_holder'] ?? '');
+    $qr_token = generate_qr_token($transaction_code);
+    // Sử dụng proxy endpoint thay vì link trực tiếp
+    $qr_url = "qr_proxy.php?code=" . urlencode($transaction_code) . "&sig=" . urlencode($qr_token);
 }
 
 /* ================= Auto-send pending email (1 lần) + Resend ================= */
@@ -491,18 +517,41 @@ $sig_link_sse    = hmac_sign('send_success_email|'.$transaction_code.'|'.$uid); 
       document.documentElement.setAttribute('data-bs-theme', 'dark');
     }
 
-    // SECURE+: Giải mã thông tin ngân hàng từ dữ liệu mã hóa
+    // SECURE+: Giải mã thông tin ngân hàng từ dữ liệu mã hóa nâng cao
     function decodeBankInfo(encoded) {
       try {
-        // Loại bỏ salt (16 ký tự đầu)
-        var withoutSalt = encoded.substring(16);
+        // Loại bỏ salt (32 ký tự) và timestamp (8 ký tự)
+        var withoutMeta = encoded.substring(40);
+        
         // Giải mã base64 lần 1
-        var firstDecode = atob(withoutSalt);
-        // Đảo ngược chuỗi
-        var reversed = firstDecode.split('').reverse().join('');
+        var stage1 = atob(withoutMeta);
+        
+        // Đảo ngược ROT13
+        var stage2 = stage1.replace(/[a-zA-Z]/g, function(c) {
+          return String.fromCharCode((c <= 'Z' ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26);
+        });
+        
         // Giải mã base64 lần 2
-        var finalDecode = atob(reversed);
-        return JSON.parse(finalDecode);
+        var stage3 = atob(stage2);
+        
+        // Đảo ngược chuỗi
+        var stage4 = stage3.split('').reverse().join('');
+        
+        // Giải mã base64 lần 3
+        var stage5 = atob(stage4);
+        
+        // XOR decryption (cần key từ server - fallback đơn giản)
+        // Note: Không thể decrypt hoàn toàn XOR ở client nếu không có key
+        // Nhưng vẫn làm khó việc decode từ source
+        var keyHash = '<?= substr(hash("sha256", APP_SECRET), 0, 32) ?>';
+        var decrypted = '';
+        for (var i = 0; i < stage5.length; i++) {
+          decrypted += String.fromCharCode(
+            stage5.charCodeAt(i) ^ keyHash.charCodeAt(i % keyHash.length)
+          );
+        }
+        
+        return JSON.parse(decrypted);
       } catch(e) {
         console.error('Decode error:', e);
         return null;
