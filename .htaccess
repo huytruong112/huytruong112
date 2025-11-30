@@ -1,0 +1,22 @@
+# Bảo vệ các file nhạy cảm
+<FilesMatch "^(config_payment\.php|db\.php)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Bảo vệ thư mục logs
+<DirectoryMatch "^.*/logs/.*$">
+    Order Allow,Deny
+    Deny from all
+</DirectoryMatch>
+
+# Cho phép API endpoints
+<FilesMatch "^(api_payment_webhook\.php|api_check_bank_transactions\.php|check_transaction_status\.php|check_balance\.php|transaction_detail\.php)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Bật HTTPS (uncomment nếu cần)
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

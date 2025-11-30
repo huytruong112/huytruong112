@@ -1,0 +1,172 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                   HỆ THỐNG THANH TOÁN TỰ ĐỘNG - DANH SÁCH FILE               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+📦 TỔNG SỐ FILE: 14 files
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 1. FILES CỐT LÕI (Core Files)                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📄 config_payment.php
+   - Cấu hình API thanh toán (keys, tokens, bank API)
+   - QUAN TRỌNG: Phải thay đổi các secret keys
+
+📄 payment_helper.php
+   - Helper xử lý logic thanh toán tự động
+   - Class PaymentHelper với các phương thức xử lý giao dịch
+
+📄 db.php
+   - File kết nối database
+   - Cần cập nhật thông tin database của bạn
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 2. API ENDPOINTS                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📄 api_payment_webhook.php
+   - API nhận webhook từ ngân hàng/cổng thanh toán
+   - Hỗ trợ: Bank Transfer, VNPay, Momo
+   - URL: https://yourdomain.com/api_payment_webhook.php
+
+📄 api_check_bank_transactions.php
+   - API kiểm tra giao dịch ngân hàng tự động (Cron Job)
+   - Chạy định kỳ để kiểm tra giao dịch pending
+   - URL: https://yourdomain.com/api_check_bank_transactions.php
+
+📄 check_transaction_status.php
+   - API kiểm tra trạng thái giao dịch theo mã
+   - Được gọi từ deposit.php
+   - URL: /check_transaction_status.php?code=TS00001
+
+📄 check_balance.php
+   - API kiểm tra số dư tài khoản
+   - Được gọi định kỳ từ deposit.php
+   - URL: /check_balance.php
+
+📄 transaction_detail.php
+   - Hiển thị chi tiết giao dịch trong modal
+   - Được gọi từ deposit.php
+   - URL: /transaction_detail.php?id=123
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 3. SETUP & MAINTENANCE                                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📄 update_database_schema.php
+   - Script cập nhật cấu trúc database
+   - CHẠY MỘT LẦN khi cài đặt
+   - Thêm cột, index, tạo bảng payment_logs
+
+📄 setup_cron.sh
+   - Script tự động cài đặt cron job (Linux/Mac)
+   - Chạy: chmod +x setup_cron.sh && ./setup_cron.sh
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 4. TESTING                                                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📄 test_webhook.php
+   - Script test webhook có hoạt động không
+   - Chạy: php test_webhook.php
+   - XÓA FILE NÀY sau khi test xong
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 5. DOCUMENTATION                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📄 README_PAYMENT_API.md
+   - Hướng dẫn chi tiết đầy đủ (tiếng Việt)
+   - API documentation
+   - Flow chart, troubleshooting
+
+📄 HUONG_DAN_CAI_DAT.md
+   - Hướng dẫn cài đặt nhanh 5 phút
+   - Quick start guide
+
+📄 DANH_SACH_FILE.txt
+   - File này - danh sách tất cả các file
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 6. SECURITY FILES                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📄 .htaccess (root)
+   - Bảo vệ file config, db.php
+   - Bảo vệ thư mục logs
+
+📄 logs/.htaccess
+   - Deny access vào thư mục logs
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 7. THƯ MỤC (Directories)                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📁 logs/
+   - payment.log      : Log thanh toán
+   - cron.log         : Log cron job
+   - .htaccess        : Bảo vệ thư mục
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                            CÁC BƯỚC CÀI ĐẶT                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+1️⃣  Upload tất cả các file vào thư mục web
+
+2️⃣  Chỉnh sửa db.php với thông tin database của bạn
+
+3️⃣  Chỉnh sửa config_payment.php:
+    - Thay đổi API_SECRET_KEY
+    - Thay đổi WEBHOOK_TOKEN
+    - Cấu hình ngân hàng (nếu có)
+
+4️⃣  Chạy update_database_schema.php để cập nhật database
+
+5️⃣  Cài đặt cron job:
+    - Linux/Mac: ./setup_cron.sh
+    - Windows: Tạo scheduled task
+    - Shared hosting: Tạo cron job chạy URL
+
+6️⃣  Test webhook: php test_webhook.php
+
+7️⃣  Xóa file test_webhook.php và update_database_schema.php
+
+8️⃣  Đăng ký webhook URL với ngân hàng/cổng thanh toán
+
+✅  XONG! Hệ thống đã sẵn sàng!
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          THÔNG TIN BẢO MẬT                                    ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+⚠️  QUAN TRỌNG - PHẢI LÀM:
+
+1. Thay đổi API_SECRET_KEY trong config_payment.php
+2. Thay đổi WEBHOOK_TOKEN trong config_payment.php
+3. Sử dụng HTTPS cho production
+4. Xóa test_webhook.php sau khi test
+5. Xóa update_database_schema.php sau khi cập nhật DB
+6. Kiểm tra file .htaccess đã hoạt động chưa
+7. Backup database trước khi cài đặt
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          HỖ TRỢ & TROUBLESHOOTING                             ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+📖 Xem hướng dẫn chi tiết:    README_PAYMENT_API.md
+🚀 Hướng dẫn cài đặt nhanh:   HUONG_DAN_CAI_DAT.md
+📝 Xem log:                    logs/payment.log, logs/cron.log
+🐛 Debug webhook:              php test_webhook.php
+🔍 Test cron job:              php api_check_bank_transactions.php
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         THÔNG TIN LIÊN HỆ                                     ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+📧 Email:    admin@yourdomain.com
+📱 Hotline:  0812.363.898
+🌐 Website:  https://yourdomain.com
+
+Copyright © 2025 - VPN Việt Nam
+Version: 1.0
+Last Update: 30/11/2025
