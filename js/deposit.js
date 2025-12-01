@@ -8,16 +8,50 @@
   
   // Anti-debugging protection
   const initSecurityProtection = () => {
-    // Disable right-click context menu
-    document.body.oncontextmenu = () => false;
+    // Disable right-click context menu (except on input fields)
+    document.body.oncontextmenu = (e) => {
+      const target = e.target;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return true; // Allow context menu on form fields
+      }
+      return false;
+    };
     
-    // Disable copy, cut, select
-    document.body.oncopy = () => false;
-    document.body.oncut = () => false;
-    document.body.onselectstart = () => false;
+    // Disable copy, cut, select (except on input fields)
+    document.body.oncopy = (e) => {
+      const target = e.target;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return true; // Allow copy in form fields
+      }
+      return false;
+    };
     
-    // Disable keyboard shortcuts
+    document.body.oncut = (e) => {
+      const target = e.target;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return true; // Allow cut in form fields
+      }
+      return false;
+    };
+    
+    document.body.onselectstart = (e) => {
+      const target = e.target;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return true; // Allow selection in form fields
+      }
+      return false;
+    };
+    
+    // Disable keyboard shortcuts (except in input fields)
     document.body.onkeydown = function(e) {
+      const target = e.target;
+      const isFormField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+      
+      // Allow all keys in form fields
+      if (isFormField) {
+        return true;
+      }
+      
       // Block Ctrl+C, Ctrl+U, Ctrl+S
       if (e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 's')) {
         e.preventDefault();
