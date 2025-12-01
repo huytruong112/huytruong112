@@ -684,9 +684,9 @@ function render_service_row($service, $qrCodeWebDir, $qrCodeDir, $vlessByService
 
             </div>
 
-            <button class="copy-btn" onclick="copyBlock('pk<?= (int)$service['id'] ?>')">Sao chép</button>
+            <button class="copy-btn" onclick="copyBlock('pk<?= (int)$service['id'] ?>')"><i class="fa fa-copy"></i> Sao chép</button>
 
-            <a class="copy-btn" href="download_public_key.php?service_id=<?= (int)$service['id'] ?>">Tải public Key</a>
+            <a class="copy-btn" href="download_public_key.php?service_id=<?= (int)$service['id'] ?>"><i class="fa fa-download"></i> Tải xuống</a>
 
         <?php elseif ($status === "Đã hủy"): ?>
 
@@ -742,13 +742,13 @@ function render_service_row($service, $qrCodeWebDir, $qrCodeDir, $vlessByService
 
                 <div class="vless-actions">
 
-                  <button class="btn btn-sm btn-outline-primary" onclick="copyText(`<?= h($uri) ?>`)">Copy URL</button>
+                  <button class="btn btn-sm btn-outline-primary" onclick="copyText(`<?= h($uri) ?>`)"><i class="fa fa-copy"></i> Copy URL</button>
 
-                  <a class="btn btn-sm btn-outline-success" href="vless_open.php?id=<?= $vid ?>">QR CODE</a>
+                  <a class="btn btn-sm btn-outline-success" href="vless_open.php?id=<?= $vid ?>"><i class="fa fa-qrcode"></i> QR CODE</a>
 
-                  <a class="btn btn-sm btn-outline-dark" href="?download_vless=txt&id=<?= $vid ?>">.TXT</a>
+                  <a class="btn btn-sm btn-outline-dark" href="?download_vless=txt&id=<?= $vid ?>"><i class="fa fa-file-text"></i> .TXT</a>
 
-                  <a class="btn btn-sm btn-outline-dark" href="?download_vless=yaml&id=<?= $vid ?>">.YAML</a>
+                  <a class="btn btn-sm btn-outline-dark" href="?download_vless=yaml&id=<?= $vid ?>"><i class="fa fa-file-code"></i> .YAML</a>
 
                 </div>
 
@@ -1200,6 +1200,264 @@ function render_service_row($service, $qrCodeWebDir, $qrCodeDir, $vlessByService
 
       font-size: 16px;
 
+    }
+    
+    /* Mobile Optimization Styles */
+    .public-key-box {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      max-width: 100%;
+      overflow: hidden;
+    }
+    
+    .public-key-box pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      word-break: break-all;
+      font-size: 11px;
+      line-height: 1.4;
+      margin: 0;
+      color: #495057;
+    }
+    
+    .copy-btn {
+      display: inline-block;
+      padding: 6px 12px;
+      margin: 4px 4px 4px 0;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .copy-btn:hover {
+      background: #0056b3;
+      color: white;
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+    
+    .copy-btn i {
+      margin-right: 5px;
+      font-size: 12px;
+    }
+    
+    .vless-actions .btn {
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    
+    .vless-actions .btn i {
+      margin-right: 5px;
+    }
+    
+    /* Mobile Responsive - Tablets and below */
+    @media (max-width: 768px) {
+      /* Public Key Mobile Optimization */
+      .public-key-box {
+        padding: 8px;
+        margin-bottom: 10px;
+      }
+      
+      .public-key-box pre {
+        font-size: 10px;
+        line-height: 1.3;
+        max-height: 120px;
+        overflow-y: auto;
+        padding: 4px;
+      }
+      
+      .copy-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+        width: calc(50% - 6px);
+        text-align: center;
+        margin: 3px;
+        display: inline-block;
+      }
+      
+      .copy-btn i {
+        margin-right: 4px;
+        font-size: 11px;
+      }
+      
+      /* VLESS Mobile Optimization */
+      .vless-list {
+        gap: 10px;
+      }
+      
+      .vless-item {
+        padding: 12px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      }
+      
+      .vless-title {
+        margin-bottom: 10px;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      
+      .vless-title strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 15px;
+        color: #333;
+      }
+      
+      .vless-title .text-muted {
+        font-size: 11px;
+        display: block;
+        word-break: break-all;
+      }
+      
+      .vless-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      
+      .vless-actions .btn {
+        margin: 0;
+        padding: 10px 8px;
+        font-size: 12px;
+        text-align: center;
+        white-space: nowrap;
+        border-radius: 8px;
+        font-weight: 500;
+      }
+      
+      .vless-actions .btn-outline-primary {
+        grid-column: 1 / -1;
+        font-weight: 600;
+        padding: 12px;
+      }
+      
+      .vless-actions .btn i {
+        margin-right: 4px;
+        font-size: 11px;
+      }
+      
+      /* Table responsive adjustments */
+      .service-table {
+        font-size: 12px;
+      }
+      
+      .service-table th,
+      .service-table td {
+        padding: 8px 4px;
+      }
+      
+      .service-table .text-muted {
+        font-size: 11px;
+      }
+    }
+    
+    /* Mobile Responsive - Phones */
+    @media (max-width: 480px) {
+      .public-key-box {
+        padding: 6px;
+      }
+      
+      .public-key-box pre {
+        font-size: 9px;
+        max-height: 100px;
+        line-height: 1.2;
+      }
+      
+      .copy-btn {
+        font-size: 11px;
+        padding: 7px 10px;
+        width: calc(50% - 4px);
+        margin: 2px;
+      }
+      
+      .copy-btn i {
+        margin-right: 3px;
+        font-size: 10px;
+      }
+      
+      .vless-item {
+        padding: 10px;
+      }
+      
+      .vless-title {
+        font-size: 13px;
+      }
+      
+      .vless-title strong {
+        font-size: 14px;
+      }
+      
+      .vless-title .text-muted {
+        font-size: 10px;
+      }
+      
+      .vless-actions .btn {
+        padding: 8px 6px;
+        font-size: 11px;
+      }
+      
+      .vless-actions .btn i {
+        margin-right: 3px;
+        font-size: 10px;
+      }
+      
+      .vless-actions .btn-outline-primary {
+        padding: 10px;
+      }
+      
+      .service-table {
+        font-size: 11px;
+      }
+      
+      .service-table th,
+      .service-table td {
+        padding: 6px 3px;
+      }
+    }
+    
+    /* Ultra small screens */
+    @media (max-width: 360px) {
+      .public-key-box pre {
+        font-size: 8px;
+        max-height: 80px;
+      }
+      
+      .copy-btn {
+        font-size: 10px;
+        padding: 6px 8px;
+      }
+      
+      .copy-btn i {
+        margin-right: 2px;
+        font-size: 9px;
+      }
+      
+      .vless-title strong {
+        font-size: 13px;
+      }
+      
+      .vless-title .text-muted {
+        font-size: 9px;
+      }
+      
+      .vless-actions .btn {
+        font-size: 10px;
+        padding: 7px 5px;
+      }
+      
+      .vless-actions .btn i {
+        margin-right: 2px;
+        font-size: 9px;
+      }
     }
 
   </style>
