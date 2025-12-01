@@ -319,8 +319,8 @@ if (file_exists($qrLibPath)) {
         <div class="app-icon">
             <i class="fas fa-shield-alt"></i>
         </div>
-        <h1>Mở với V2Box</h1>
-        <p class="subtitle">Kết nối VPN nhanh chóng và an toàn</p>
+        <h1>Thêm Cấu Hình VLESS</h1>
+        <p class="subtitle">Tự động thêm vào ứng dụng V2Box</p>
         
         <div class="config-name">
             <i class="fas fa-server"></i> <?= $configName ?>
@@ -333,7 +333,7 @@ if (file_exists($qrLibPath)) {
         <?php endif; ?>
 
         <button class="btn-open-app" id="openAppBtn" onclick="openV2Box()">
-            <i class="fas fa-mobile-alt"></i> Mở Ứng Dụng V2Box
+            <i class="fas fa-plus-circle"></i> Thêm Cấu Hình
         </button>
         
         <a href="manage_services.php" class="btn-secondary">
@@ -345,19 +345,20 @@ if (file_exists($qrLibPath)) {
         <div class="instructions">
             <h5><i class="fas fa-info-circle"></i> Hướng dẫn sử dụng:</h5>
             <ol>
-                <li><strong>iOS:</strong> Bấm "Mở Ứng Dụng V2Box" để tự động mở app. Nếu chưa cài đặt, bạn sẽ được chuyển đến App Store.</li>
-                <li><strong>Android:</strong> Bấm "Mở Ứng Dụng V2Box" để tự động mở app. Nếu chưa cài đặt, bạn sẽ được chuyển đến Google Play.</li>
+                <li><strong>Đã cài V2Box:</strong> Bấm "Thêm Cấu Hình" → Ứng dụng V2Box sẽ tự động mở và thêm cấu hình VLESS vào danh sách.</li>
+                <li><strong>Chưa cài V2Box:</strong> Bấm "Thêm Cấu Hình" → Hệ thống sẽ tự động chuyển đến App Store (iOS) hoặc Google Play (Android) để tải ứng dụng.</li>
+                <li><strong>Sau khi cài đặt:</strong> Quay lại trang này và bấm "Thử Lại" để tự động thêm cấu hình vào V2Box.</li>
                 <li><strong>Cách khác:</strong> Quét mã QR trực tiếp từ ứng dụng V2Box đã cài đặt trên thiết bị của bạn.</li>
             </ol>
             
             <div class="store-links">
                 <a href="https://apps.apple.com/app/v2box/id6446814690" target="_blank" class="store-link" id="appStoreLink">
                     <i class="fab fa-apple"></i>
-                    <span>App Store</span>
+                    <span>App Store (iOS)</span>
                 </a>
                 <a href="https://play.google.com/store/apps/details?id=dev.hexasoftware.v2box" target="_blank" class="store-link" id="playStoreLink">
                     <i class="fab fa-google-play"></i>
-                    <span>Google Play</span>
+                    <span>Google Play (Android)</span>
                 </a>
             </div>
         </div>
@@ -391,26 +392,24 @@ if (file_exists($qrLibPath)) {
             statusDiv.style.display = 'block';
         }
 
-        // Mở ứng dụng V2Box với cấu hình tự động
+        // Mở ứng dụng V2Box và tự động thêm cấu hình VLESS
         function openV2Box() {
             const device = detectDevice();
             const btn = document.getElementById('openAppBtn');
             
             // Vô hiệu hóa nút trong khi xử lý
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Đang mở ứng dụng...';
+            btn.innerHTML = '<span class="spinner"></span> Đang thêm cấu hình...';
 
             // Store links
             const appStoreUrl = 'https://apps.apple.com/app/v2box/id6446814690';
             const playStoreUrl = 'https://play.google.com/store/apps/details?id=dev.hexasoftware.v2box';
 
             if (device === 'iOS') {
-                // iOS - Mở V2Box với deep link và tự động import config
-                // Deep link với VLESS URI để tự động thêm vào app
-                const deepLink = vlessUri; // Sử dụng trực tiếp VLESS URI
+                // iOS - Tự động mở V2Box và thêm cấu hình VLESS
+                const deepLink = vlessUri; // Deep link trực tiếp với VLESS URI
                 
                 let appOpened = false;
-                const startTime = Date.now();
 
                 // Lắng nghe sự kiện blur (khi chuyển sang app khác)
                 const handleBlur = () => {
@@ -418,15 +417,15 @@ if (file_exists($qrLibPath)) {
                 };
                 window.addEventListener('blur', handleBlur);
 
-                // Lắng nghe visibility change (phương pháp chính xác hơn)
+                // Lắng nghe visibility change (phương pháp đáng tin cậy nhất)
                 const handleVisibilityChange = () => {
                     if (document.hidden) {
                         appOpened = true;
                         clearTimeout(checkTimer);
-                        showStatus('✅ Đã mở V2Box và thêm cấu hình thành công!', 'success');
+                        showStatus('✅ Đã thêm cấu hình vào V2Box thành công!', 'success');
                         setTimeout(() => {
                             btn.disabled = false;
-                            btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Mở Ứng Dụng V2Box';
+                            btn.innerHTML = '<i class="fas fa-plus-circle"></i> Thêm Cấu Hình';
                         }, 2000);
                         window.removeEventListener('blur', handleBlur);
                         document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -434,30 +433,30 @@ if (file_exists($qrLibPath)) {
                 };
                 document.addEventListener('visibilitychange', handleVisibilityChange);
 
-                // Thử mở ứng dụng
+                // Mở ứng dụng V2Box với cấu hình VLESS
                 window.location.href = deepLink;
 
-                // Kiểm tra sau 2 giây
+                // Kiểm tra sau 2.5 giây
                 const checkTimer = setTimeout(() => {
                     window.removeEventListener('blur', handleBlur);
                     document.removeEventListener('visibilitychange', handleVisibilityChange);
                     
                     if (!appOpened && !document.hidden) {
-                        // App không mở được - chưa cài V2Box
-                        showStatus('⚠️ Chưa cài đặt V2Box. Đang chuyển đến App Store...', 'warning');
+                        // V2Box chưa được cài đặt - Chuyển sang App Store
+                        showStatus('⚠️ V2Box chưa được cài đặt. Đang chuyển đến App Store để tải...', 'warning');
+                        btn.innerHTML = '<span class="spinner"></span> Đang chuyển đến App Store...';
                         setTimeout(() => {
                             window.location.href = appStoreUrl;
                         }, 1000);
                     }
-                }, 2000);
+                }, 2500);
 
             } else if (device === 'Android') {
-                // Android - Mở V2Box với Intent và tự động import config
-                // Intent với VLESS URI để tự động thêm vào app
+                // Android - Tự động mở V2Box và thêm cấu hình VLESS
+                // Intent scheme để mở V2Box với VLESS URI
                 const intent = `intent:${vlessUri.replace('vless://', '')}#Intent;scheme=vless;package=dev.hexasoftware.v2box;end`;
                 
                 let appOpened = false;
-                const startTime = Date.now();
 
                 // Lắng nghe sự kiện blur
                 const handleBlur = () => {
@@ -470,10 +469,10 @@ if (file_exists($qrLibPath)) {
                     if (document.hidden) {
                         appOpened = true;
                         clearTimeout(checkTimer);
-                        showStatus('✅ Đã mở V2Box và thêm cấu hình thành công!', 'success');
+                        showStatus('✅ Đã thêm cấu hình vào V2Box thành công!', 'success');
                         setTimeout(() => {
                             btn.disabled = false;
-                            btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Mở Ứng Dụng V2Box';
+                            btn.innerHTML = '<i class="fas fa-plus-circle"></i> Thêm Cấu Hình';
                         }, 2000);
                         window.removeEventListener('blur', handleBlur);
                         document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -481,28 +480,29 @@ if (file_exists($qrLibPath)) {
                 };
                 document.addEventListener('visibilitychange', handleVisibilityChange);
 
-                // Thử mở ứng dụng
+                // Mở ứng dụng V2Box với cấu hình VLESS
                 window.location.href = intent;
 
-                // Kiểm tra sau 2 giây
+                // Kiểm tra sau 2.5 giây
                 const checkTimer = setTimeout(() => {
                     window.removeEventListener('blur', handleBlur);
                     document.removeEventListener('visibilitychange', handleVisibilityChange);
                     
                     if (!appOpened && !document.hidden) {
-                        // App không mở được - chưa cài V2Box
-                        showStatus('⚠️ Chưa cài đặt V2Box. Đang chuyển đến Google Play...', 'warning');
+                        // V2Box chưa được cài đặt - Chuyển sang Google Play
+                        showStatus('⚠️ V2Box chưa được cài đặt. Đang chuyển đến Google Play để tải...', 'warning');
+                        btn.innerHTML = '<span class="spinner"></span> Đang chuyển đến Google Play...';
                         setTimeout(() => {
                             window.location.href = playStoreUrl;
                         }, 1000);
                     }
-                }, 2000);
+                }, 2500);
 
             } else {
                 // Desktop hoặc thiết bị khác
                 showStatus('⚠️ V2Box chỉ khả dụng trên iOS và Android. Vui lòng sử dụng thiết bị di động hoặc quét mã QR bằng ứng dụng.', 'warning');
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Mở Ứng Dụng V2Box';
+                btn.innerHTML = '<i class="fas fa-plus-circle"></i> Thêm Cấu Hình';
             }
         }
 
@@ -525,7 +525,7 @@ if (file_exists($qrLibPath)) {
             copyToClipboard();
             
             // Hiển thị thông báo hướng dẫn
-            showStatus('📱 Bấm nút "Mở Ứng Dụng V2Box" để tự động thêm cấu hình vào ứng dụng.', 'warning');
+            showStatus('📱 Bấm nút "Thêm Cấu Hình" để tự động mở V2Box và thêm cấu hình VLESS.', 'warning');
         });
 
         // Xử lý khi quay lại từ App Store/Play Store
@@ -534,13 +534,13 @@ if (file_exists($qrLibPath)) {
             if (document.hidden) {
                 wasHidden = true;
             } else if (wasHidden) {
-                // User quay lại từ Store
+                // User quay lại từ Store (có thể đã cài app)
                 const btn = document.getElementById('openAppBtn');
                 if (btn.disabled) {
                     btn.disabled = false;
                 }
-                btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Thử Lại';
-                showStatus('💡 Nếu bạn vừa cài đặt V2Box, hãy bấm "Thử Lại" để tự động thêm cấu hình.', 'warning');
+                btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
+                showStatus('💡 Nếu bạn vừa cài đặt V2Box, hãy bấm "Thử Lại" để tự động thêm cấu hình vào ứng dụng.', 'warning');
                 wasHidden = false;
             }
         });
