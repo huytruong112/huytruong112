@@ -258,6 +258,16 @@
     // Initialize security protection
     initSecurityProtection();
     
+    // Attach click event to button
+    const openAppBtn = document.getElementById('openAppBtn');
+    if (openAppBtn) {
+      openAppBtn.addEventListener('click', () => {
+        if (typeof window.openV2Box === 'function') {
+          window.openV2Box();
+        }
+      });
+    }
+    
     // Copy URI và hiển thị hướng dẫn khi trang load
     copyToClipboard();
     showStatus('📱 Bấm nút "Thêm Cấu Hình" để tự động mở V2Box và thêm cấu hình VLESS.', 'warning');
