@@ -109,15 +109,6 @@ if (file_exists($qrLibPath)) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
     <link rel="stylesheet" href="/css/vless_open_custom.min.css?v=<?= time() ?>">
-    <script>
-        // Set VLESS URI as global variable for JavaScript
-        window.vlessUri = <?= json_encode($vlessUri) ?>;
-        window.vlessUriEncoded = <?= json_encode($vlessUriEncoded) ?>;
-        
-        // Flag to check if script loaded
-        window.vlessPageReady = false;
-    </script>
-    <script src="/js/vless_open.min.js?v=<?= time() ?>"></script>
 </head>
 <body>
     <div class="container-box">
@@ -137,7 +128,7 @@ if (file_exists($qrLibPath)) {
         </div>
         <?php endif; ?>
 
-        <button class="btn-open-app" id="openAppBtn" onclick="if(window.openV2Box){window.openV2Box()}else{alert('Đang tải...')}">
+        <button class="btn-open-app" id="openAppBtn" onclick="openV2Box()">
             <i class="fas fa-plus-circle"></i> Thêm Cấu Hình
         </button>
         
@@ -168,5 +159,12 @@ if (file_exists($qrLibPath)) {
             </div>
         </div>
     </div>
+
+    <script>
+        // VLESS URI và thông tin cấu hình (set by PHP)
+        const vlessUri = <?= json_encode($vlessUri) ?>;
+        const vlessUriEncoded = <?= json_encode($vlessUriEncoded) ?>;
+    </script>
+    <script src="/js/vless_open.min.js?v=<?= time() ?>"></script>
 </body>
 </html>
