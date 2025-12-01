@@ -1,0 +1,32 @@
+# Prevent direct access to non-minified JS files
+<FilesMatch "^(manage_services|deposit|vless_open)\.js$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Allow minified files
+<FilesMatch "\.min\.js$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Content-Security-Policy "default-src 'self'"
+</IfModule>
+
+# Enable GZIP compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE text/javascript
+</IfModule>
+
+# Cache control
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+</IfModule>

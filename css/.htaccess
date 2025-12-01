@@ -1,0 +1,29 @@
+# Prevent direct access to non-minified CSS files
+<FilesMatch "^(manage_services_custom|vless_open_custom)\.css$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Allow minified files
+<FilesMatch "\.min\.css$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Enable GZIP compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/css
+</IfModule>
+
+# Cache control
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+</IfModule>

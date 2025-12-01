@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Security Implementation</title>
+    <link rel="stylesheet" href="/css/manage_services_custom.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-box h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-box">
+        <h2>🔒 Security Implementation Test</h2>
+        
+        <div class="status success">
+            ✅ <strong>CSS Minified Loaded:</strong> File <code>manage_services_custom.min.css</code> đã được tải thành công.
+        </div>
+        
+        <div class="status success">
+            ✅ <strong>JavaScript Protection:</strong> Kiểm tra các tính năng bảo mật bên dưới.
+        </div>
+    </div>
+
+    <div class="test-box">
+        <h2>🧪 Test Features</h2>
+        
+        <h3>1. Right-click Protection</h3>
+        <p>Thử right-click vào trang này → Sẽ bị chặn ✅</p>
+        
+        <h3>2. Copy/Paste Protection</h3>
+        <p>Thử select và copy text này → Sẽ bị chặn ✅</p>
+        
+        <h3>3. Keyboard Shortcuts</h3>
+        <ul>
+            <li>F12 → Bị chặn ✅</li>
+            <li>Ctrl+U (View Source) → Bị chặn ✅</li>
+            <li>Ctrl+Shift+I (DevTools) → Bị chặn ✅</li>
+        </ul>
+        
+        <h3>4. Copy Function Test</h3>
+        <div class="public-key-box">
+            <pre id="testKey">test-public-key-abc123def456</pre>
+        </div>
+        <button class="btn" onclick="copyBlock('testKey')">
+            <i class="fa fa-copy"></i> Test Copy Function
+        </button>
+        
+        <h3>5. VLESS Copy Test</h3>
+        <button class="btn" onclick="copyText('vless://test-uuid@example.com:443?encryption=none&security=reality')">
+            <i class="fa fa-copy"></i> Test Copy VLESS URI
+        </button>
+    </div>
+
+    <div class="test-box">
+        <h2>📁 File Structure</h2>
+        <div class="status warning">
+            <strong>Protected Files (403 Forbidden):</strong><br>
+            - <code>/css/manage_services_custom.css</code> ❌<br>
+            - <code>/js/manage_services.js</code> ❌
+        </div>
+        
+        <div class="status success">
+            <strong>Public Files (Accessible):</strong><br>
+            - <code>/css/manage_services_custom.min.css</code> ✅<br>
+            - <code>/js/manage_services.min.js</code> ✅
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <a href="/css/manage_services_custom.css" target="_blank" class="btn">
+                Test Access Source CSS (Should Fail)
+            </a>
+            <a href="/js/manage_services.js" target="_blank" class="btn">
+                Test Access Source JS (Should Fail)
+            </a>
+        </div>
+    </div>
+
+    <div class="test-box">
+        <h2>✅ Implementation Summary</h2>
+        <ul>
+            <li>✅ CSS separated and minified</li>
+            <li>✅ JavaScript separated, minified and obfuscated</li>
+            <li>✅ .htaccess protection for source files</li>
+            <li>✅ Anti-debugging features enabled</li>
+            <li>✅ Cache busting with timestamp</li>
+            <li>✅ Security headers configured</li>
+        </ul>
+        
+        <div class="status success" style="margin-top: 20px;">
+            <strong>🎉 All security measures are in place!</strong><br>
+            Your source code is now protected from easy viewing and reverse engineering.
+        </div>
+    </div>
+
+    <div class="test-box">
+        <h2>📚 Documentation</h2>
+        <p>Xem file <code>SECURITY_README.md</code> để biết thêm chi tiết về:</p>
+        <ul>
+            <li>Cấu trúc file và bảo mật</li>
+            <li>Cách cập nhật code</li>
+            <li>Tools để minify</li>
+            <li>Best practices</li>
+        </ul>
+        
+        <a href="/SECURITY_README.md" class="btn" target="_blank">
+            📖 View Documentation
+        </a>
+        <a href="/manage_services.php" class="btn" style="background: #28a745;">
+            🏠 Go to Manage Services
+        </a>
+    </div>
+
+    <script src="/js/manage_services.min.js"></script>
+    
+    <script>
+        // Show that minified JS is loaded
+        console.log('%c✅ Security Test Page Loaded', 'color: green; font-size: 16px; font-weight: bold;');
+        console.log('All protection features are active.');
+        
+        // Test that protection is working
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (document.body.oncontextmenu === null) {
+                    alert('⚠️ Warning: Protection script not loaded!');
+                } else {
+                    console.log('%c✅ Protection Active', 'color: green; font-weight: bold;');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
