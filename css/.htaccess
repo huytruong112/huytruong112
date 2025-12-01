@@ -1,5 +1,5 @@
 # Prevent direct access to non-minified CSS files
-<FilesMatch "^manage_services_custom\.css$">
+<FilesMatch "^(manage_services_custom|vless_open_custom)\.css$">
     Order Allow,Deny
     Deny from all
 </FilesMatch>

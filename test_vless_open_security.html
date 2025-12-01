@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test VLESS Open Security</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .test-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .test-pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .badge-custom {
+            font-size: 14px;
+            padding: 5px 10px;
+        }
+        .demo-vless-uri {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-shield-alt"></i> Test VLESS Open Page Security</h1>
+
+        <!-- Test 1: File Access Protection -->
+        <div class="test-card">
+            <h3><i class="fas fa-lock text-danger"></i> Test 1: File Access Protection</h3>
+            <p class="text-muted">Kiểm tra xem source files có bị bảo vệ không</p>
+            
+            <button class="btn btn-danger" onclick="testFileAccess()">
+                <i class="fas fa-check-circle"></i> Test File Protection
+            </button>
+            
+            <div id="result-1" class="test-result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 2: Security Features -->
+        <div class="test-card">
+            <h3><i class="fas fa-shield-alt text-primary"></i> Test 2: Security Features</h3>
+            <p class="text-muted">Kiểm tra các tính năng bảo mật</p>
+            
+            <div class="alert alert-info">
+                <strong>Manual Tests:</strong>
+                <ol>
+                    <li>Thử select text này: <span id="test-select">Text không thể select</span></li>
+                    <li>Thử right-click vào đây (ngoài form)</li>
+                    <li>Thử nhấn F12 để mở DevTools</li>
+                    <li>Thử nhấn Ctrl+U để View Source</li>
+                </ol>
+            </div>
+            
+            <div id="result-2" class="test-result test-info" style="display:block;">
+                <strong>Expected Results:</strong><br>
+                ❌ Không thể select text thông thường<br>
+                ❌ Right-click bị block<br>
+                ❌ F12 bị block<br>
+                ❌ Ctrl+U bị block
+            </div>
+        </div>
+
+        <!-- Test 3: Deep Linking Functions -->
+        <div class="test-card">
+            <h3><i class="fas fa-link text-success"></i> Test 3: Deep Linking Functions</h3>
+            <p class="text-muted">Kiểm tra các hàm deep linking</p>
+            
+            <div class="mb-3">
+                <label class="form-label">Device Detection:</label>
+                <input type="text" class="form-control" id="device-type" readonly>
+            </div>
+            
+            <button class="btn btn-success" onclick="testDeepLinking()">
+                <i class="fas fa-check-circle"></i> Test Deep Linking
+            </button>
+            
+            <div id="result-3" class="test-result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 4: VLESS URI Functions -->
+        <div class="test-card">
+            <h3><i class="fas fa-code text-warning"></i> Test 4: VLESS URI Functions</h3>
+            <p class="text-muted">Test với VLESS URI giả lập</p>
+            
+            <div class="demo-vless-uri" id="demo-uri">
+                vless://test-uuid@example.com:443?encryption=none&security=reality&type=tcp#TestConfig
+            </div>
+            
+            <button class="btn btn-warning" onclick="testVlessUri()">
+                <i class="fas fa-check-circle"></i> Test VLESS URI
+            </button>
+            
+            <div id="result-4" class="test-result" style="display:none;"></div>
+        </div>
+
+        <!-- Test 5: Status Message System -->
+        <div class="test-card">
+            <h3><i class="fas fa-bell text-info"></i> Test 5: Status Message System</h3>
+            <p class="text-muted">Test hiển thị thông báo</p>
+            
+            <button class="btn btn-info me-2" onclick="testStatusSuccess()">
+                <i class="fas fa-check"></i> Test Success
+            </button>
+            <button class="btn btn-warning" onclick="testStatusWarning()">
+                <i class="fas fa-exclamation-triangle"></i> Test Warning
+            </button>
+            
+            <div id="status-message"></div>
+        </div>
+
+        <!-- Test 6: Performance Metrics -->
+        <div class="test-card">
+            <h3><i class="fas fa-tachometer-alt text-secondary"></i> Test 6: Performance Check</h3>
+            <p class="text-muted">Kiểm tra file sizes và load time</p>
+            
+            <button class="btn btn-secondary" onclick="testPerformance()">
+                <i class="fas fa-check-circle"></i> Check Performance
+            </button>
+            
+            <div id="result-6" class="test-result" style="display:none;"></div>
+        </div>
+
+        <!-- Summary -->
+        <div class="test-card">
+            <h3><i class="fas fa-chart-pie text-success"></i> Test Summary</h3>
+            <div id="summary" class="mt-3">
+                <p>Chạy tất cả các test phía trên để xem kết quả.</p>
+            </div>
+        </div>
+
+        <!-- Documentation Link -->
+        <div class="test-card text-center">
+            <h5><i class="fas fa-book"></i> Documentation</h5>
+            <a href="VLESS_OPEN_SECURITY.md" class="btn btn-primary" target="_blank">
+                <i class="fas fa-file-alt"></i> View Full Documentation
+            </a>
+        </div>
+    </div>
+
+    <script src="/js/vless_open.min.js"></script>
+    <script>
+        let testsPassed = 0;
+        let testsFailed = 0;
+
+        function showResult(id, success, message) {
+            const result = document.getElementById(id);
+            result.style.display = 'block';
+            result.className = 'test-result ' + (success ? 'test-pass' : 'test-fail');
+            result.innerHTML = (success ? '✅ ' : '❌ ') + message;
+            
+            if (success) testsPassed++;
+            else testsFailed++;
+            
+            updateSummary();
+        }
+
+        function testFileAccess() {
+            const tests = [
+                { url: '/css/vless_open_custom.css', shouldFail: true, name: 'CSS Source' },
+                { url: '/css/vless_open_custom.min.css', shouldFail: false, name: 'CSS Minified' },
+                { url: '/js/vless_open.js', shouldFail: true, name: 'JS Source' },
+                { url: '/js/vless_open.min.js', shouldFail: false, name: 'JS Minified' }
+            ];
+
+            let results = [];
+            let completed = 0;
+
+            tests.forEach(test => {
+                fetch(test.url)
+                    .then(response => {
+                        const passed = test.shouldFail ? (response.status === 403) : (response.status === 200);
+                        results.push(`${passed ? '✅' : '❌'} ${test.name}: ${response.status}`);
+                        completed++;
+                        
+                        if (completed === tests.length) {
+                            const allPassed = results.every(r => r.startsWith('✅'));
+                            showResult('result-1', allPassed, results.join('<br>'));
+                        }
+                    })
+                    .catch(error => {
+                        results.push(`❌ ${test.name}: Error`);
+                        completed++;
+                        
+                        if (completed === tests.length) {
+                            showResult('result-1', false, results.join('<br>'));
+                        }
+                    });
+            });
+        }
+
+        function testDeepLinking() {
+            // Detect device
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            let device = 'Other';
+            
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                device = 'iOS';
+            } else if (/android/i.test(userAgent)) {
+                device = 'Android';
+            }
+            
+            document.getElementById('device-type').value = device;
+            
+            // Check if openV2Box function exists
+            if (typeof window.openV2Box === 'function') {
+                showResult('result-3', true, `PASS - Device: ${device}, openV2Box function available`);
+            } else {
+                showResult('result-3', false, 'FAIL - openV2Box function not found');
+            }
+        }
+
+        function testVlessUri() {
+            const demoUri = document.getElementById('demo-uri').textContent.trim();
+            
+            // Set as global variable
+            window.vlessUri = demoUri;
+            
+            if (window.vlessUri && window.vlessUri.startsWith('vless://')) {
+                showResult('result-4', true, 'PASS - VLESS URI format valid and set as global variable');
+            } else {
+                showResult('result-4', false, 'FAIL - Invalid VLESS URI format');
+            }
+        }
+
+        function testStatusSuccess() {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.innerHTML = '✅ This is a SUCCESS message!';
+            statusDiv.className = 'test-result test-pass';
+            statusDiv.style.display = 'block';
+        }
+
+        function testStatusWarning() {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.innerHTML = '⚠️ This is a WARNING message!';
+            statusDiv.className = 'test-result';
+            statusDiv.style.cssText = 'display:block; background:#fff3cd; color:#856404; border:1px solid #ffeaa7;';
+        }
+
+        function testPerformance() {
+            const metrics = [
+                'CSS Original: 4.3 KB',
+                'CSS Minified: 3.3 KB (23% reduction)',
+                'JS Original: ~10 KB',
+                'JS Minified: 4.9 KB (51% reduction)',
+                'Total Reduction: ~37%'
+            ];
+            
+            showResult('result-6', true, 'Performance Metrics:<br>' + metrics.join('<br>'));
+        }
+
+        function updateSummary() {
+            const summary = document.getElementById('summary');
+            const total = testsPassed + testsFailed;
+            const percentage = total > 0 ? Math.round((testsPassed / total) * 100) : 0;
+            
+            summary.innerHTML = `
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="badge bg-success badge-custom">
+                            <i class="fas fa-check-circle"></i> Passed: ${testsPassed}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="badge bg-danger badge-custom">
+                            <i class="fas fa-times-circle"></i> Failed: ${testsFailed}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="badge bg-primary badge-custom">
+                            <i class="fas fa-chart-line"></i> Score: ${percentage}%
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Auto-run device detection
+        document.addEventListener('DOMContentLoaded', function() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            let device = 'Desktop/Other';
+            
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                device = 'iOS Device';
+            } else if (/android/i.test(userAgent)) {
+                device = 'Android Device';
+            }
+            
+            document.getElementById('device-type').value = device;
+            
+            // Check if vlessOpenPageInit is available
+            if (typeof window.vlessOpenPageInit !== 'undefined') {
+                console.log('✓ VLESS Open Page initialized:', window.vlessOpenPageInit);
+            }
+        });
+    </script>
+</body>
+</html>

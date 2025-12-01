@@ -1,5 +1,5 @@
 # Prevent direct access to non-minified JS files
-<FilesMatch "^(manage_services|deposit)\.js$">
+<FilesMatch "^(manage_services|deposit|vless_open)\.js$">
     Order Allow,Deny
     Deny from all
 </FilesMatch>
