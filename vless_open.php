@@ -113,8 +113,11 @@ if (file_exists($qrLibPath)) {
         // Set VLESS URI as global variable for JavaScript
         window.vlessUri = <?= json_encode($vlessUri) ?>;
         window.vlessUriEncoded = <?= json_encode($vlessUriEncoded) ?>;
+        
+        // Flag to check if script loaded
+        window.vlessPageReady = false;
     </script>
-    <script src="/js/vless_open.min.js?v=<?= time() ?>" defer></script>
+    <script src="/js/vless_open.min.js?v=<?= time() ?>"></script>
 </head>
 <body>
     <div class="container-box">

@@ -253,8 +253,8 @@
     }
   };
   
-  // Initialize on page load
-  document.addEventListener('DOMContentLoaded', () => {
+  // Initialize immediately (no DOMContentLoaded wait)
+  const initializePage = () => {
     // Initialize security protection
     initSecurityProtection();
     
@@ -262,10 +262,16 @@
     const openAppBtn = document.getElementById('openAppBtn');
     if (openAppBtn) {
       openAppBtn.addEventListener('click', () => {
+        console.log('[VLESS] Button clicked, calling openV2Box()');
         if (typeof window.openV2Box === 'function') {
           window.openV2Box();
+        } else {
+          console.error('[VLESS] openV2Box function not available!');
         }
       });
+      console.log('[VLESS] Event listener attached to button');
+    } else {
+      console.error('[VLESS] Button #openAppBtn not found!');
     }
     
     // Copy URI và hiển thị hướng dẫn khi trang load
@@ -288,7 +294,19 @@
     // Console warning
     console.log('%cStop!', 'color: red; font-size: 50px; font-weight: bold;');
     console.log('%cĐây là tính năng dành cho nhà phát triển. Nếu ai đó bảo bạn sao chép-dán nội dung vào đây, đó là hành vi lừa đảo.', 'font-size: 16px;');
-  });
+    
+    // Set ready flag
+    window.vlessPageReady = true;
+    console.log('[VLESS] Page initialized successfully');
+  };
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializePage);
+  } else {
+    // DOM already loaded, initialize immediately
+    initializePage();
+  }
   
   // Anti-debugging: Infinite debugger loop
   setInterval(() => {
