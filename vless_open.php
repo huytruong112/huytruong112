@@ -398,128 +398,112 @@ if (file_exists($qrLibPath)) {
             
             // Vô hiệu hóa nút trong khi xử lý
             btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Đang thêm cấu hình...';
+            btn.innerHTML = '<span class="spinner"></span> Đang mở ứng dụng...';
 
             // Store links
             const appStoreUrl = 'https://apps.apple.com/app/v2box/id6446814690';
             const playStoreUrl = 'https://play.google.com/store/apps/details?id=dev.hexasoftware.v2box';
 
             if (device === 'iOS') {
-                // iOS - Thử nhiều cách để mở và import config
+                // iOS - Mở V2Box với deep link và tự động import config
+                // Deep link với VLESS URI để tự động thêm vào app
+                const deepLink = vlessUri; // Sử dụng trực tiếp VLESS URI
                 
-                // Cách 1: Direct VLESS URI (Universal Link pattern)
-                tryOpenApp(vlessUri, () => {
-                    // Cách 2: V2Box deep link với base64 encoded config
-                    const base64Config = btoa(vlessUri);
-                    const deepLink1 = `v2box://install-config?url=${vlessUriEncoded}`;
-                    tryOpenApp(deepLink1, () => {
-                        // Cách 3: V2Box import scheme
-                        const deepLink2 = `v2box://import/${vlessUriEncoded}`;
-                        tryOpenApp(deepLink2, () => {
-                            // Cách 4: V2Box add-server scheme
-                            const deepLink3 = `v2box://add-server?config=${vlessUriEncoded}`;
-                            tryOpenApp(deepLink3, () => {
-                                // Không mở được - chuyển đến App Store
-                                showStatus('Không tìm thấy ứng dụng V2Box. Đang chuyển đến App Store...', 'warning');
-                                setTimeout(() => {
-                                    window.location.href = appStoreUrl;
-                                }, 1500);
-                                resetButton();
-                            }, 600);
-                        }, 600);
-                    }, 600);
-                }, 600);
+                let appOpened = false;
+                const startTime = Date.now();
+
+                // Lắng nghe sự kiện blur (khi chuyển sang app khác)
+                const handleBlur = () => {
+                    appOpened = true;
+                };
+                window.addEventListener('blur', handleBlur);
+
+                // Lắng nghe visibility change (phương pháp chính xác hơn)
+                const handleVisibilityChange = () => {
+                    if (document.hidden) {
+                        appOpened = true;
+                        clearTimeout(checkTimer);
+                        showStatus('✅ Đã mở V2Box và thêm cấu hình thành công!', 'success');
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Mở Ứng Dụng V2Box';
+                        }, 2000);
+                        window.removeEventListener('blur', handleBlur);
+                        document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    }
+                };
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+
+                // Thử mở ứng dụng
+                window.location.href = deepLink;
+
+                // Kiểm tra sau 2 giây
+                const checkTimer = setTimeout(() => {
+                    window.removeEventListener('blur', handleBlur);
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    
+                    if (!appOpened && !document.hidden) {
+                        // App không mở được - chưa cài V2Box
+                        showStatus('⚠️ Chưa cài đặt V2Box. Đang chuyển đến App Store...', 'warning');
+                        setTimeout(() => {
+                            window.location.href = appStoreUrl;
+                        }, 1000);
+                    }
+                }, 2000);
 
             } else if (device === 'Android') {
-                // Android - Thử nhiều cách để mở và import config
+                // Android - Mở V2Box với Intent và tự động import config
+                // Intent với VLESS URI để tự động thêm vào app
+                const intent = `intent:${vlessUri.replace('vless://', '')}#Intent;scheme=vless;package=dev.hexasoftware.v2box;end`;
                 
-                // Cách 1: Direct VLESS URI với Intent
-                const intent1 = `intent:${vlessUri}#Intent;scheme=vless;package=dev.hexasoftware.v2box;end`;
-                tryOpenApp(intent1, () => {
-                    // Cách 2: V2Box custom intent với action
-                    const intent2 = `intent://install-config?url=${vlessUriEncoded}#Intent;scheme=v2box;package=dev.hexasoftware.v2box;action=android.intent.action.VIEW;end`;
-                    tryOpenApp(intent2, () => {
-                        // Cách 3: V2Box import intent
-                        const intent3 = `intent://import/${vlessUriEncoded}#Intent;scheme=v2box;package=dev.hexasoftware.v2box;end`;
-                        tryOpenApp(intent3, () => {
-                            // Cách 4: V2Box add-server intent
-                            const intent4 = `intent://add-server?config=${vlessUriEncoded}#Intent;scheme=v2box;package=dev.hexasoftware.v2box;end`;
-                            tryOpenApp(intent4, () => {
-                                // Không mở được - chuyển đến Play Store
-                                showStatus('Không tìm thấy ứng dụng V2Box. Đang chuyển đến Google Play...', 'warning');
-                                setTimeout(() => {
-                                    window.location.href = playStoreUrl;
-                                }, 1500);
-                                resetButton();
-                            }, 600);
-                        }, 600);
-                    }, 600);
-                }, 600);
+                let appOpened = false;
+                const startTime = Date.now();
+
+                // Lắng nghe sự kiện blur
+                const handleBlur = () => {
+                    appOpened = true;
+                };
+                window.addEventListener('blur', handleBlur);
+
+                // Lắng nghe visibility change
+                const handleVisibilityChange = () => {
+                    if (document.hidden) {
+                        appOpened = true;
+                        clearTimeout(checkTimer);
+                        showStatus('✅ Đã mở V2Box và thêm cấu hình thành công!', 'success');
+                        setTimeout(() => {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Mở Ứng Dụng V2Box';
+                        }, 2000);
+                        window.removeEventListener('blur', handleBlur);
+                        document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    }
+                };
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+
+                // Thử mở ứng dụng
+                window.location.href = intent;
+
+                // Kiểm tra sau 2 giây
+                const checkTimer = setTimeout(() => {
+                    window.removeEventListener('blur', handleBlur);
+                    document.removeEventListener('visibilitychange', handleVisibilityChange);
+                    
+                    if (!appOpened && !document.hidden) {
+                        // App không mở được - chưa cài V2Box
+                        showStatus('⚠️ Chưa cài đặt V2Box. Đang chuyển đến Google Play...', 'warning');
+                        setTimeout(() => {
+                            window.location.href = playStoreUrl;
+                        }, 1000);
+                    }
+                }, 2000);
 
             } else {
                 // Desktop hoặc thiết bị khác
-                showStatus('V2Box chỉ khả dụng trên iOS và Android. Vui lòng sử dụng thiết bị di động hoặc quét mã QR bằng ứng dụng.', 'warning');
-                resetButton();
-            }
-        }
-
-        // Thử mở app với URL/Intent cụ thể
-        function tryOpenApp(url, fallback, timeout = 2500) {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = url;
-            document.body.appendChild(iframe);
-
-            let appOpened = false;
-            const startTime = Date.now();
-
-            // Xóa iframe sau khi thử
-            setTimeout(() => {
-                document.body.removeChild(iframe);
-            }, 100);
-
-            // Kiểm tra nếu app mở thành công
-            const checkTimer = setTimeout(() => {
-                const elapsed = Date.now() - startTime;
-                
-                if (!document.hidden) {
-                    // Tab vẫn visible = app không mở được
-                    if (fallback && typeof fallback === 'function') {
-                        fallback();
-                    }
-                } else {
-                    // Tab bị ẩn = app đã mở thành công
-                    showStatus('✓ Cấu hình đã được thêm vào V2Box thành công!', 'success');
-                    resetButton();
-                }
-            }, timeout);
-
-            // Theo dõi khi tab bị ẩn
-            const visibilityHandler = function() {
-                if (document.hidden) {
-                    appOpened = true;
-                    clearTimeout(checkTimer);
-                    showStatus('✓ Cấu hình đã được thêm vào V2Box thành công!', 'success');
-                    resetButton();
-                    document.removeEventListener('visibilitychange', visibilityHandler);
-                }
-            };
-            
-            document.addEventListener('visibilitychange', visibilityHandler);
-
-            // Dọn dẹp sau timeout
-            setTimeout(() => {
-                document.removeEventListener('visibilitychange', visibilityHandler);
-            }, timeout + 500);
-        }
-
-        // Reset button về trạng thái ban đầu
-        function resetButton() {
-            const btn = document.getElementById('openAppBtn');
-            setTimeout(() => {
+                showStatus('⚠️ V2Box chỉ khả dụng trên iOS và Android. Vui lòng sử dụng thiết bị di động hoặc quét mã QR bằng ứng dụng.', 'warning');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Mở Ứng Dụng V2Box';
-            }, 2000);
+            }
         }
 
         // Tự động copy URI vào clipboard
@@ -535,7 +519,7 @@ if (file_exists($qrLibPath)) {
             }
         }
 
-        // Copy URI và tự động thử mở app khi trang load
+        // Copy URI và hiển thị hướng dẫn khi trang load
         window.addEventListener('load', () => {
             // Copy URI để người dùng có thể paste thủ công nếu cần
             copyToClipboard();
@@ -545,14 +529,19 @@ if (file_exists($qrLibPath)) {
         });
 
         // Xử lý khi quay lại từ App Store/Play Store
+        let wasHidden = false;
         document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
+            if (document.hidden) {
+                wasHidden = true;
+            } else if (wasHidden) {
+                // User quay lại từ Store
                 const btn = document.getElementById('openAppBtn');
                 if (btn.disabled) {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Thử Lại';
-                    showStatus('💡 Nếu bạn vừa cài đặt V2Box, hãy bấm "Thử Lại" để thêm cấu hình.', 'warning');
                 }
+                btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Thử Lại';
+                showStatus('💡 Nếu bạn vừa cài đặt V2Box, hãy bấm "Thử Lại" để tự động thêm cấu hình.', 'warning');
+                wasHidden = false;
             }
         });
 
