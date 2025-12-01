@@ -137,7 +137,7 @@ if (file_exists($qrLibPath)) {
         </div>
         <?php endif; ?>
 
-        <button class="btn-open-app" id="openAppBtn">
+        <button class="btn-open-app" id="openAppBtn" onclick="if(window.openV2Box){window.openV2Box()}else{alert('Đang tải...')}">
             <i class="fas fa-plus-circle"></i> Thêm Cấu Hình
         </button>
         
