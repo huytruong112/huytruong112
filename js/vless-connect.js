@@ -1,5 +1,5 @@
-// VLESS Connection Script - STREISAND ONLY - NO AUTO REDIRECT
-// CHỈ gọi Streisand, KHÔNG tự động chuyển Store
+// VLESS Connection Script - QR CODE ONLY
+// Streisand không hỗ trợ vless:// deep link → CHỈ dùng QR Code
 
 let vlessUri = '';
 let vlessUriEncoded = '';
@@ -8,6 +8,7 @@ function initializeConfig(uri, uriEncoded) {
     vlessUri = uri;
     vlessUriEncoded = uriEncoded;
     console.log('✓ Config initialized');
+    console.log('VLESS URI:', uri);
 }
 
 // Detect device
@@ -33,201 +34,60 @@ function showStatus(message, type = 'success') {
     statusDiv.style.display = 'block';
 }
 
-// Main function - CHỈ gọi Streisand
-async function openVPNApp() {
-    const device = detectDevice();
-    const btn = document.getElementById('openAppBtn');
-    
-    if (!btn) return;
-    btn.disabled = true;
-    
-    if (device === 'iOS') {
-        openStreisandiOS(btn);
-    } else if (device === 'Android') {
-        openStreisandAndroid(btn);
-    } else {
-        showStatus('⚠️ Vui lòng sử dụng thiết bị di động hoặc quét mã QR.', 'warning');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-plus-circle"></i> Thêm Cấu Hình';
-    }
-}
-
-// iOS - CHỈ gọi Streisand, KHÔNG redirect Store
-function openStreisandiOS(btn) {
-    showStatus('🔄 Đang mở Streisand...', 'info');
-    btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
-    
-    const deepLink = vlessUri;
-    console.log('Opening Streisand with:', deepLink);
-    
-    let appOpened = false;
-    
-    // Event handlers
-    const handleBlur = () => {
-        console.log('✓ App opened (blur)');
-        appOpened = true;
-    };
-    
-    const handleVisibilityChange = () => {
-        if (document.hidden) {
-            console.log('✓ App opened (hidden)');
-            appOpened = true;
-        }
-    };
-    
-    const handlePageHide = () => {
-        console.log('✓ App opened (pagehide)');
-        appOpened = true;
-    };
-    
-    // Add listeners
-    window.addEventListener('blur', handleBlur);
-    window.addEventListener('pagehide', handlePageHide);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Thử mở app
-    try {
-        // Method 1: iframe
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = 'none';
-        iframe.style.position = 'absolute';
-        iframe.style.left = '-9999px';
-        
-        document.body.appendChild(iframe);
-        iframe.src = deepLink;
-        
-        // Method 2: window.location (backup sau 250ms)
-        setTimeout(() => {
-            if (!appOpened) {
-                window.location.href = deepLink;
-            }
-        }, 250);
-        
-        // Cleanup iframe
-        setTimeout(() => {
-            if (iframe.parentNode) {
-                document.body.removeChild(iframe);
-            }
-        }, 1000);
-        
-    } catch (e) {
-        console.error('Error:', e);
-    }
-    
-    // Check result sau 2s
-    setTimeout(() => {
-        window.removeEventListener('blur', handleBlur);
-        window.removeEventListener('pagehide', handlePageHide);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        
-        if (appOpened || document.hidden) {
-            // App đã mở
-            showStatus('✅ Streisand đã mở! Cấu hình VLESS đang được thêm.', 'success');
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở Streisand';
-            btn.disabled = false;
-        } else {
-            // Không detect được app - KHÔNG redirect, chỉ show message
-            showStatus('⚠️ Không mở được Streisand. Vui lòng đảm bảo ứng dụng đã được cài đặt.', 'warning');
-            btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
-            btn.disabled = false;
-        }
-    }, 2000);
-}
-
-// Android - CHỈ gọi Streisand, KHÔNG redirect Store
-function openStreisandAndroid(btn) {
-    showStatus('🔄 Đang mở Streisand...', 'info');
-    btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
-    
-    // Android Intent - KHÔNG có browser_fallback_url
-    const vlessData = vlessUri.replace('vless://', '');
-    const intentURL = `intent://${vlessData}#Intent;scheme=vless;package=com.github.shadowsocks.tv.vpn;end`;
-    
-    console.log('Opening Streisand with:', intentURL);
-    
-    let appOpened = false;
-    
-    // Event handlers
-    const handleBlur = () => {
-        console.log('✓ App opened (blur)');
-        appOpened = true;
-    };
-    
-    const handleVisibilityChange = () => {
-        if (document.hidden) {
-            console.log('✓ App opened (hidden)');
-            appOpened = true;
-        }
-    };
-    
-    // Add listeners
-    window.addEventListener('blur', handleBlur);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Mở với intent
-    try {
-        window.location.href = intentURL;
-    } catch (e) {
-        console.error('Error:', e);
-    }
-    
-    // Check result sau 2s
-    setTimeout(() => {
-        window.removeEventListener('blur', handleBlur);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        
-        if (appOpened || document.hidden) {
-            // App đã mở
-            showStatus('✅ Streisand đã mở! Cấu hình VLESS đang được thêm.', 'success');
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở Streisand';
-            btn.disabled = false;
-        } else {
-            // Không detect được app - KHÔNG redirect, chỉ show message
-            showStatus('⚠️ Không mở được Streisand. Vui lòng đảm bảo ứng dụng đã được cài đặt.', 'warning');
-            btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
-            btn.disabled = false;
-        }
-    }, 2000);
-}
-
-// Copy URI to clipboard (backup)
+// Copy URI to clipboard
 async function copyToClipboard() {
     try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(vlessUri);
             console.log('✓ URI copied to clipboard');
+            return true;
         }
     } catch (err) {
         console.error('Copy failed:', err);
     }
+    return false;
+}
+
+// Main function - Copy và hướng dẫn quét QR
+async function openVPNApp() {
+    const btn = document.getElementById('openAppBtn');
+    if (!btn) return;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Đang sao chép...';
+    
+    // Copy URI vào clipboard
+    const copied = await copyToClipboard();
+    
+    setTimeout(() => {
+        if (copied) {
+            showStatus('✅ Đã sao chép cấu hình vào clipboard!<br><br>📱 <strong>Hướng dẫn:</strong><br>1️⃣ Mở ứng dụng Streisand<br>2️⃣ Nhấn nút "+" hoặc "Add"<br>3️⃣ Chọn "Scan QR Code" và quét mã QR bên trên<br><br>✨ Hoặc chọn "Import from Clipboard" để paste cấu hình đã copy.', 'success');
+        } else {
+            showStatus('📱 <strong>Hướng dẫn thêm cấu hình:</strong><br>1️⃣ Mở ứng dụng Streisand trên điện thoại<br>2️⃣ Nhấn nút "+" hoặc "Add Server"<br>3️⃣ Chọn "Scan QR Code"<br>4️⃣ Quét mã QR bên trên<br><br>✅ Cấu hình sẽ được tự động thêm vào Streisand!', 'info');
+        }
+        
+        btn.innerHTML = '<i class="fas fa-qrcode"></i> Đã Copy - Hãy Quét QR';
+        btn.disabled = false;
+        
+        // Highlight QR code
+        const qrContainer = document.querySelector('.qr-container');
+        if (qrContainer) {
+            qrContainer.style.border = '3px solid #4CAF50';
+            qrContainer.style.animation = 'pulse 1.5s ease-in-out 3';
+            qrContainer.style.boxShadow = '0 0 20px rgba(76, 175, 80, 0.5)';
+        }
+    }, 500);
 }
 
 // Initialize on page load
 window.addEventListener('load', () => {
+    // Auto copy on load
     copyToClipboard();
     
     const device = detectDevice();
     if (device === 'iOS' || device === 'Android') {
-        showStatus('📱 Bấm "Thêm Cấu Hình" để mở Streisand và tự động thêm cấu hình VLESS.', 'info');
+        showStatus('📱 <strong>Cách thêm cấu hình vào Streisand:</strong><br><br>1️⃣ Mở ứng dụng Streisand<br>2️⃣ Nhấn nút "+" (Add)<br>3️⃣ Chọn "Scan QR Code"<br>4️⃣ Quét mã QR bên trên<br><br>✅ Hoặc bấm nút bên dưới để copy cấu hình, sau đó paste vào Streisand.', 'info');
     } else {
-        showStatus('💡 Vui lòng sử dụng thiết bị di động hoặc quét mã QR.', 'info');
-    }
-});
-
-// Handle page visibility - User quay lại
-let hadLeftPage = false;
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        hadLeftPage = true;
-    } else if (hadLeftPage) {
-        const btn = document.getElementById('openAppBtn');
-        if (btn && btn.disabled) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
-        }
-        hadLeftPage = false;
+        showStatus('💡 Vui lòng mở trang này trên điện thoại và quét mã QR bằng ứng dụng Streisand.', 'info');
     }
 });

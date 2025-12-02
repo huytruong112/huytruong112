@@ -129,7 +129,7 @@ if (file_exists($qrLibPath)) {
         <?php endif; ?>
 
         <button class="btn-open-app" id="openAppBtn" onclick="openVPNApp()">
-            <i class="fas fa-plus-circle"></i> Thêm Cấu Hình
+            <i class="fas fa-copy"></i> Sao Chép Cấu Hình
         </button>
         
         <a href="manage_services.php" class="btn-secondary">
@@ -139,17 +139,22 @@ if (file_exists($qrLibPath)) {
         <div id="status-message"></div>
 
         <div class="instructions">
-            <h5><i class="fas fa-info-circle"></i> Hướng dẫn sử dụng:</h5>
+            <h5><i class="fas fa-info-circle"></i> Hướng dẫn thêm cấu hình:</h5>
             <ol>
-                <li><strong>Đã cài Streisand:</strong> Bấm "Thêm Cấu Hình" → Ứng dụng Streisand sẽ tự động mở và thêm cấu hình VLESS vào danh sách.</li>
-                <li><strong>Chưa cài Streisand:</strong> Bấm "Thêm Cấu Hình" → Hệ thống sẽ tự động chuyển đến App Store (iOS) hoặc Google Play (Android) để tải ứng dụng.</li>
-                <li><strong>Sau khi cài đặt:</strong> Quay lại trang này và bấm "Thử Lại" để tự động thêm cấu hình.</li>
-                <li><strong>Cách thay thế:</strong> Quét mã QR bằng ứng dụng Streisand đã cài đặt trên thiết bị.</li>
+                <li><strong>Mở ứng dụng Streisand</strong> trên điện thoại của bạn</li>
+                <li><strong>Nhấn nút "+" (Add Server)</strong> ở góc trên bên phải</li>
+                <li><strong>Chọn "Scan QR Code"</strong> hoặc "Import from Clipboard"</li>
+                <li><strong>Quét mã QR</strong> ở trên hoặc paste từ clipboard</li>
+                <li><strong>Cấu hình sẽ tự động được thêm</strong> vào danh sách server</li>
             </ol>
             
             <div class="app-priority-info">
                 <h6><i class="fas fa-mobile-alt"></i> Ứng dụng hỗ trợ:</h6>
                 <p><strong>Streisand</strong> - Ứng dụng VPN hỗ trợ giao thức VLESS với mã hóa Reality/TLS</p>
+                <p style="color: #666; font-size: 0.9em; margin-top: 8px;">
+                    💡 <strong>Lưu ý:</strong> Streisand không hỗ trợ thêm cấu hình trực tiếp từ web browser. 
+                    Vui lòng sử dụng tính năng Scan QR Code trong ứng dụng.
+                </p>
             </div>
             
             <div class="store-links">
