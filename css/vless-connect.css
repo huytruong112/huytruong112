@@ -1,3 +1,17 @@
+/* ============================================
+   VLESS Connect Styles - Streisand & sing-box
+   Modern, Responsive, Animated
+   ============================================ */
+
+/* ============================================
+   Base & Reset
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
@@ -6,18 +20,38 @@ body {
     justify-content: center;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: 20px;
+    overflow-x: hidden;
 }
 
+/* ============================================
+   Main Container
+   ============================================ */
 .container-box {
     background: white;
     border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     padding: 40px;
     max-width: 650px;
     width: 100%;
     text-align: center;
+    animation: slideUp 0.5s ease-out;
+    position: relative;
 }
 
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   App Icon
+   ============================================ */
 .app-icon {
     width: 100px;
     height: 100px;
@@ -28,42 +62,100 @@ body {
     justify-content: center;
     margin: 0 auto 20px;
     box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    animation: float 3s ease-in-out infinite;
+    transition: transform 0.3s ease;
+}
+
+.app-icon:hover {
+    transform: scale(1.05);
 }
 
 .app-icon i {
     font-size: 50px;
     color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* ============================================
+   Typography
+   ============================================ */
 h1 {
     color: #333;
     font-weight: 700;
     margin-bottom: 10px;
     font-size: 28px;
+    animation: fadeIn 0.6s ease-out 0.2s both;
 }
 
 .subtitle {
     color: #666;
     margin-bottom: 30px;
     font-size: 16px;
+    animation: fadeIn 0.6s ease-out 0.3s both;
 }
 
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   Config Name Box
+   ============================================ */
 .config-name {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 10px;
+    background: linear-gradient(to right, #f8f9fa, #e9ecef);
+    padding: 15px 20px;
+    border-radius: 12px;
     margin-bottom: 30px;
     font-weight: 600;
     color: #495057;
-    border-left: 4px solid #667eea;
+    border-left: 5px solid #667eea;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    animation: fadeIn 0.6s ease-out 0.4s both;
+    transition: transform 0.3s ease;
 }
 
+.config-name:hover {
+    transform: translateX(5px);
+}
+
+.config-name i {
+    margin-right: 8px;
+    color: #667eea;
+}
+
+/* ============================================
+   QR Code Container
+   ============================================ */
 .qr-container {
     background: #f8f9fa;
-    padding: 20px;
+    padding: 25px;
     border-radius: 15px;
     margin-bottom: 30px;
     display: inline-block;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.6s ease-out 0.5s both;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.qr-container:hover {
+    transform: scale(1.02);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
 }
 
 .qr-container img {
@@ -71,28 +163,59 @@ h1 {
     width: 100%;
     height: auto;
     border-radius: 10px;
+    display: block;
 }
 
+/* ============================================
+   Buttons
+   ============================================ */
 .btn-open-app {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 15px 40px;
+    padding: 16px 45px;
     border-radius: 50px;
     border: none;
     font-size: 18px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
     text-decoration: none;
     display: inline-block;
     margin: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-open-app::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.btn-open-app:hover::before {
+    left: 100%;
 }
 
 .btn-open-app:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
-    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+}
+
+.btn-open-app:active {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-open-app:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .btn-secondary {
@@ -113,16 +236,21 @@ h1 {
 .btn-secondary:hover {
     background: #5a6268;
     transform: translateY(-2px);
-    color: white;
+    box-shadow: 0 8px 20px rgba(108, 117, 125, 0.3);
 }
 
+/* ============================================
+   Instructions Section
+   ============================================ */
 .instructions {
-    background: #fff3cd;
-    border-left: 4px solid #ffc107;
-    padding: 20px;
-    border-radius: 10px;
+    background: linear-gradient(to bottom right, #fff3cd, #ffeaa7);
+    border-left: 5px solid #ffc107;
+    padding: 25px;
+    border-radius: 12px;
     margin-top: 30px;
     text-align: left;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+    animation: fadeIn 0.6s ease-out 0.6s both;
 }
 
 .instructions h5 {
@@ -134,48 +262,74 @@ h1 {
     gap: 10px;
 }
 
+.instructions h5 i {
+    font-size: 20px;
+}
+
 .instructions ol {
     color: #856404;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     padding-left: 20px;
 }
 
 .instructions li {
-    margin-bottom: 10px;
-    line-height: 1.6;
+    margin-bottom: 12px;
+    line-height: 1.7;
 }
 
+.instructions li strong {
+    color: #664d03;
+}
+
+/* ============================================
+   App Priority Info Box
+   ============================================ */
 .app-priority-info {
-    background: #e7f3ff;
+    background: linear-gradient(to bottom right, #e7f3ff, #cfe2ff);
     border: 2px solid #2196f3;
-    border-radius: 10px;
-    padding: 15px;
+    border-radius: 12px;
+    padding: 20px;
     margin: 20px 0;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
 }
 
 .app-priority-info h6 {
     color: #1565c0;
     font-weight: 700;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 16px;
+}
+
+.app-priority-info h6 i {
+    font-size: 18px;
 }
 
 .app-priority-info ol {
-    color: #1565c0;
+    color: #0d47a1;
     margin-bottom: 0;
-    padding-left: 20px;
+    padding-left: 25px;
 }
 
 .app-priority-info li {
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    line-height: 1.6;
 }
 
+.app-priority-info li strong {
+    color: #0d47a1;
+    font-weight: 700;
+}
+
+/* ============================================
+   Store Links Grid
+   ============================================ */
 .store-links {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 12px;
     margin-top: 20px;
 }
 
@@ -183,84 +337,288 @@ h1 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px 15px;
+    gap: 10px;
+    padding: 12px 15px;
     background: white;
     border: 2px solid #dee2e6;
-    border-radius: 10px;
+    border-radius: 12px;
     text-decoration: none;
     color: #333;
     font-weight: 600;
     font-size: 14px;
     transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .store-link:hover {
     border-color: #667eea;
     color: #667eea;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
 }
 
 .store-link i {
-    font-size: 20px;
+    font-size: 22px;
 }
 
+/* ============================================
+   Status Messages
+   ============================================ */
 #status-message {
     margin-top: 20px;
-    padding: 15px;
-    border-radius: 10px;
+    padding: 15px 20px;
+    border-radius: 12px;
     font-weight: 600;
     display: none;
+    animation: slideDown 0.4s ease-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .status-success {
-    background: #d4edda;
+    background: linear-gradient(to right, #d4edda, #c3e6cb);
     color: #155724;
-    border: 1px solid #c3e6cb;
+    border: 2px solid #c3e6cb;
 }
 
 .status-warning {
-    background: #fff3cd;
+    background: linear-gradient(to right, #fff3cd, #ffeaa7);
     color: #856404;
-    border: 1px solid #ffeaa7;
+    border: 2px solid #ffeaa7;
 }
 
 .status-info {
-    background: #d1ecf1;
+    background: linear-gradient(to right, #d1ecf1, #bee5eb);
     color: #0c5460;
-    border: 1px solid #bee5eb;
+    border: 2px solid #bee5eb;
 }
 
+/* ============================================
+   Loading Spinner
+   ============================================ */
 .spinner {
-    border: 3px solid #f3f3f3;
+    border: 3px solid rgba(255, 255, 255, 0.3);
     border-top: 3px solid #667eea;
     border-radius: 50%;
     width: 30px;
     height: 30px;
-    animation: spin 1s linear infinite;
+    animation: spin 0.8s linear infinite;
     display: inline-block;
     margin-right: 10px;
     vertical-align: middle;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+    .container-box {
+        padding: 35px 25px;
+        max-width: 95%;
+    }
+    
+    h1 {
+        font-size: 26px;
+    }
+    
+    .subtitle {
+        font-size: 15px;
+    }
 }
 
 @media (max-width: 576px) {
+    body {
+        padding: 15px;
+    }
+    
     .container-box {
         padding: 30px 20px;
+        border-radius: 15px;
     }
+    
+    .app-icon {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .app-icon i {
+        font-size: 40px;
+    }
+    
     h1 {
         font-size: 24px;
     }
-    .btn-open-app {
-        padding: 12px 30px;
-        font-size: 16px;
+    
+    .subtitle {
+        font-size: 14px;
+        margin-bottom: 25px;
     }
+    
+    .config-name {
+        padding: 12px 15px;
+        font-size: 14px;
+    }
+    
+    .qr-container {
+        padding: 20px;
+    }
+    
+    .qr-container img {
+        max-width: 240px;
+    }
+    
+    .btn-open-app {
+        padding: 14px 35px;
+        font-size: 16px;
+        width: 100%;
+        margin: 8px 0;
+    }
+    
+    .btn-secondary {
+        padding: 12px 25px;
+        font-size: 15px;
+        width: 100%;
+        margin: 8px 0;
+    }
+    
     .store-links {
         grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .store-link {
+        padding: 14px 20px;
+        font-size: 15px;
+    }
+    
+    .instructions {
+        padding: 20px;
+    }
+    
+    .app-priority-info {
+        padding: 15px;
     }
 }
+
+@media (max-width: 400px) {
+    .container-box {
+        padding: 25px 15px;
+    }
+    
+    h1 {
+        font-size: 22px;
+    }
+    
+    .btn-open-app {
+        padding: 12px 30px;
+        font-size: 15px;
+    }
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+.btn-open-app:focus,
+.btn-secondary:focus,
+.store-link:focus {
+    outline: 3px solid rgba(102, 126, 234, 0.5);
+    outline-offset: 2px;
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+@media print {
+    body {
+        background: white;
+    }
+    
+    .container-box {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    .btn-open-app,
+    .btn-secondary {
+        display: none;
+    }
+    
+    .store-links {
+        display: none;
+    }
+}
+
+/* ============================================
+   Dark Mode Support (Optional)
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+    /* Uncomment below if you want dark mode support
+    body {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+    
+    .container-box {
+        background: #2d2d44;
+        color: #e0e0e0;
+    }
+    
+    h1, .config-name {
+        color: #e0e0e0;
+    }
+    */
+}
+
+/* ============================================
+   Animation Utilities
+   ============================================ */
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.shake {
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-10px);
+    }
+    75% {
+        transform: translateX(10px);
+    }
+}
+
+/* ============================================
+   End of Styles
+   ============================================ */
