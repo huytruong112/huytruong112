@@ -762,7 +762,7 @@ function render_service_row($service, $qrCodeWebDir, $qrCodeDir, $vlessByService
 
                   <button class="btn btn-sm btn-outline-primary" onclick="copyText(`<?= h($uri) ?>`)"><i class="fa fa-copy"></i> Copy URL</button>
 
-                  <a class="btn btn-sm btn-outline-success" href="vless_open.php?id=<?= $vid ?>"><i class="fa fa-qrcode"></i>Kết Nối</a>
+                  <a class="btn btn-sm btn-outline-success" href="vless_connect.php?id=<?= $vid ?>"><i class="fa fa-qrcode"></i>Kết Nối</a>
 
                   <a class="btn btn-sm btn-outline-dark" href="?download_vless=txt&id=<?= $vid ?>"><i class="fa fa-file-text"></i> .TXT</a>
 
