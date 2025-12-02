@@ -116,7 +116,7 @@ if (file_exists($qrLibPath)) {
             <i class="fas fa-shield-alt"></i>
         </div>
         <h1>Thêm Cấu Hình VPN</h1>
-        <p class="subtitle">Tự động thêm vào ứng dụng Streisand hoặc sing-box</p>
+        <p class="subtitle">Tự động thêm vào ứng dụng Streisand</p>
         
         <div class="config-name">
             <i class="fas fa-server"></i> <?= $configName ?>
@@ -141,37 +141,25 @@ if (file_exists($qrLibPath)) {
         <div class="instructions">
             <h5><i class="fas fa-info-circle"></i> Hướng dẫn sử dụng:</h5>
             <ol>
-                <li><strong>Đã cài Streisand hoặc sing-box:</strong> Bấm "Thêm Cấu Hình" → Ứng dụng sẽ tự động mở và thêm cấu hình VLESS vào danh sách.</li>
-                <li><strong>Chưa cài ứng dụng:</strong> Bấm "Thêm Cấu Hình" → Hệ thống sẽ tự động chuyển đến App Store (iOS) hoặc Google Play (Android) để tải ứng dụng.</li>
+                <li><strong>Đã cài Streisand:</strong> Bấm "Thêm Cấu Hình" → Ứng dụng Streisand sẽ tự động mở và thêm cấu hình VLESS vào danh sách.</li>
+                <li><strong>Chưa cài Streisand:</strong> Bấm "Thêm Cấu Hình" → Hệ thống sẽ tự động chuyển đến App Store (iOS) hoặc Google Play (Android) để tải ứng dụng.</li>
                 <li><strong>Sau khi cài đặt:</strong> Quay lại trang này và bấm "Thử Lại" để tự động thêm cấu hình.</li>
-                <li><strong>Cách khác:</strong> Quét mã QR trực tiếp từ ứng dụng đã cài đặt trên thiết bị của bạn.</li>
+                <li><strong>Cách thay thế:</strong> Quét mã QR bằng ứng dụng Streisand đã cài đặt trên thiết bị.</li>
             </ol>
             
             <div class="app-priority-info">
-                <h6><i class="fas fa-layer-group"></i> Thứ tự ưu tiên:</h6>
-                <ol>
-                    <li>Thử mở <strong>Streisand</strong> trước</li>
-                    <li>Nếu không có → Thử mở <strong>sing-box</strong></li>
-                    <li>Nếu không có → Chuyển đến Store để tải</li>
-                </ol>
+                <h6><i class="fas fa-mobile-alt"></i> Ứng dụng hỗ trợ:</h6>
+                <p><strong>Streisand</strong> - Ứng dụng VPN hỗ trợ giao thức VLESS với mã hóa Reality/TLS</p>
             </div>
             
             <div class="store-links">
                 <a href="https://apps.apple.com/app/streisand/id6450534064" target="_blank" class="store-link">
                     <i class="fab fa-apple"></i>
-                    <span>Streisand (iOS)</span>
+                    <span>Tải Streisand cho iOS</span>
                 </a>
                 <a href="https://play.google.com/store/apps/details?id=com.github.shadowsocks.tv.vpn" target="_blank" class="store-link">
                     <i class="fab fa-google-play"></i>
-                    <span>Streisand (Android)</span>
-                </a>
-                <a href="https://apps.apple.com/app/sing-box/id6451272673" target="_blank" class="store-link">
-                    <i class="fab fa-apple"></i>
-                    <span>sing-box (iOS)</span>
-                </a>
-                <a href="https://play.google.com/store/apps/details?id=io.nekohasekai.sfa" target="_blank" class="store-link">
-                    <i class="fab fa-google-play"></i>
-                    <span>sing-box (Android)</span>
+                    <span>Tải Streisand cho Android</span>
                 </a>
             </div>
         </div>

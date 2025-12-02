@@ -1,369 +1,267 @@
-// VLESS Connection Script - SAFARI FIXED
-// Fix lỗi: "Safari không thể mở trang này, vì địa chỉ không hợp lệ"
+// VLESS Connection Script - STREISAND ONLY - COMPLETE SOLUTION
+// Tự động thêm cấu hình VLESS vào Streisand
 
-let vlessUri;
-let vlessUriEncoded;
+let vlessUri = '';
+let vlessUriEncoded = '';
 
 function initializeConfig(uri, uriEncoded) {
     vlessUri = uri;
     vlessUriEncoded = uriEncoded;
+    console.log('✓ Config initialized');
 }
 
+// Detect device
 function detectDevice() {
-    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-    
-    if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) {
         return 'iOS';
     }
-    
-    if (/android/i.test(userAgent)) {
+    if (/android/i.test(ua)) {
         return 'Android';
     }
-    
     return 'Other';
 }
 
-function isSafari() {
-    const ua = navigator.userAgent;
-    return /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
-}
-
+// Show status message
 function showStatus(message, type = 'success') {
     const statusDiv = document.getElementById('status-message');
+    if (!statusDiv) return;
+    
     statusDiv.innerHTML = message;
-    statusDiv.className = type === 'success' ? 'status-success' : (type === 'info' ? 'status-info' : 'status-warning');
+    statusDiv.className = type === 'success' ? 'status-success' : 
+                         (type === 'info' ? 'status-info' : 'status-warning');
     statusDiv.style.display = 'block';
 }
 
-// Hàm copy URI vào clipboard
-async function copyURIToClipboard() {
-    try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(vlessUri);
-            console.log('✓ VLESS URI copied to clipboard');
-            return true;
-        }
-    } catch (err) {
-        console.error('Failed to copy:', err);
-    }
-    return false;
-}
-
-// Hàm thử mở app - CHO SAFARI
-function tryOpenAppSafari(appScheme, appName, timeout = 3000) {
-    return new Promise((resolve) => {
-        let resolved = false;
-        let startTime = Date.now();
-        
-        const resolveOnce = (success) => {
-            if (!resolved) {
-                resolved = true;
-                resolve(success);
-            }
-        };
-        
-        // Detect khi app mở thành công
-        const handleBlur = () => {
-            console.log('Window blur - App opened');
-            resolveOnce(true);
-        };
-        
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                console.log('Document hidden - App opened');
-                resolveOnce(true);
-            }
-        };
-        
-        const handlePageHide = () => {
-            console.log('Page hide - App opened');
-            resolveOnce(true);
-        };
-        
-        // Add listeners
-        window.addEventListener('blur', handleBlur);
-        window.addEventListener('pagehide', handlePageHide);
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        
-        // Cleanup function
-        const cleanup = () => {
-            window.removeEventListener('blur', handleBlur);
-            window.removeEventListener('pagehide', handlePageHide);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-        
-        // Safari: Dùng window.location trực tiếp (KHÔNG dùng iframe)
-        // Chỉ dùng app scheme đơn giản, KHÔNG truyền full VLESS URI
-        try {
-            // Copy URI vào clipboard trước
-            copyURIToClipboard();
-            
-            // Mở app với scheme đơn giản
-            window.location.href = appScheme;
-            console.log('Opening app with scheme:', appScheme);
-        } catch (e) {
-            console.error('Error opening app:', e);
-        }
-        
-        // Timeout check
-        setTimeout(() => {
-            cleanup();
-            
-            if (!resolved) {
-                const elapsed = Date.now() - startTime;
-                console.log(`Timeout after ${elapsed}ms`);
-                
-                // Kiểm tra nếu trang vẫn visible → app không có
-                if (!document.hidden && document.hasFocus()) {
-                    resolveOnce(false);
-                } else {
-                    resolveOnce(true);
-                }
-            }
-        }, timeout);
-    });
-}
-
-// Hàm thử mở app - CHO ANDROID/CHROME
-function tryOpenAppAndroid(deepLink, appName, timeout = 3000) {
-    return new Promise((resolve) => {
-        let resolved = false;
-        
-        const resolveOnce = (success) => {
-            if (!resolved) {
-                resolved = true;
-                resolve(success);
-            }
-        };
-        
-        const handleBlur = () => {
-            console.log('Window blur - App opened');
-            resolveOnce(true);
-        };
-        
-        const handleVisibilityChange = () => {
-            if (document.hidden) {
-                console.log('Document hidden - App opened');
-                resolveOnce(true);
-            }
-        };
-        
-        window.addEventListener('blur', handleBlur);
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        
-        const cleanup = () => {
-            window.removeEventListener('blur', handleBlur);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-        
-        // Android: Dùng intent URL
-        try {
-            window.location.href = deepLink;
-            console.log('Opening app with deep link:', deepLink);
-        } catch (e) {
-            console.error('Error opening deep link:', e);
-        }
-        
-        setTimeout(() => {
-            cleanup();
-            
-            if (!resolved) {
-                if (!document.hidden && document.hasFocus()) {
-                    resolveOnce(false);
-                } else {
-                    resolveOnce(true);
-                }
-            }
-        }, timeout);
-    });
-}
-
-// Logic cascade chính
+// Main function - Open Streisand
 async function openVPNApp() {
     const device = detectDevice();
-    const safari = isSafari();
     const btn = document.getElementById('openAppBtn');
+    
+    if (!btn) return;
     btn.disabled = true;
     
-    console.log('Device:', device, 'Safari:', safari);
-    
     if (device === 'iOS') {
-        await openVPNAppiOS(btn, safari);
+        await openStreisandiOS(btn);
     } else if (device === 'Android') {
-        await openVPNAppAndroid(btn);
+        await openStreisandAndroid(btn);
     } else {
-        showStatus('⚠️ Tính năng này chỉ khả dụng trên iOS và Android. Vui lòng quét mã QR.', 'warning');
+        showStatus('⚠️ Tính năng này chỉ khả dụng trên iOS và Android. Vui lòng quét mã QR bằng ứng dụng Streisand.', 'warning');
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-plus-circle"></i> Thêm Cấu Hình';
     }
 }
 
-// iOS Logic - SAFARI COMPATIBLE
-async function openVPNAppiOS(btn, safari) {
-    const appStoreStreisand = 'https://apps.apple.com/app/streisand/id6450534064';
-    const appStoreSingBox = 'https://apps.apple.com/app/sing-box/id6451272673';
-    
-    // Copy URI vào clipboard trước (cho cả Safari và Chrome)
-    await copyURIToClipboard();
-    
-    if (safari) {
-        // SAFARI: Dùng app scheme đơn giản
-        showStatus('🔍 Đang mở Streisand... (URI đã copy vào clipboard)', 'info');
-        btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
-        
-        // Streisand app scheme (đơn giản, không có full URI)
-        const streisandScheme = 'streisand://';
-        const streisandOpened = await tryOpenAppSafari(streisandScheme, 'Streisand', 3000);
-        
-        if (streisandOpened) {
-            showStatus('✅ Streisand đã mở! Vui lòng PASTE (dán) cấu hình từ clipboard vào ứng dụng.', 'success');
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
-            }, 2000);
-            return;
-        }
-        
-        // sing-box
-        showStatus('🔍 Đang mở sing-box... (URI đã copy vào clipboard)', 'info');
-        btn.innerHTML = '<span class="spinner"></span> Đang mở sing-box...';
-        
-        const singBoxScheme = 'sing-box://';
-        const singBoxOpened = await tryOpenAppSafari(singBoxScheme, 'sing-box', 3000);
-        
-        if (singBoxOpened) {
-            showStatus('✅ sing-box đã mở! Vui lòng PASTE (dán) cấu hình từ clipboard vào ứng dụng.', 'success');
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
-            }, 2000);
-            return;
-        }
-        
-    } else {
-        // CHROME iOS: Thử dùng full VLESS deep link
-        showStatus('🔍 Đang mở Streisand...', 'info');
-        btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
-        
-        const streisandDeepLink = vlessUri;
-        const streisandOpened = await tryOpenAppAndroid(streisandDeepLink, 'Streisand', 3000);
-        
-        if (streisandOpened) {
-            showStatus('✅ Streisand đã mở! Cấu hình sẽ tự động được thêm.', 'success');
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
-            }, 2000);
-            return;
-        }
-        
-        showStatus('🔍 Đang mở sing-box...', 'info');
-        btn.innerHTML = '<span class="spinner"></span> Đang mở sing-box...';
-        
-        const singBoxDeepLink = vlessUri;
-        const singBoxOpened = await tryOpenAppAndroid(singBoxDeepLink, 'sing-box', 3000);
-        
-        if (singBoxOpened) {
-            showStatus('✅ sing-box đã mở! Cấu hình sẽ tự động được thêm.', 'success');
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
-            }, 2000);
-            return;
-        }
-    }
-    
-    // Không tìm thấy app
-    showStatus('⚠️ Không tìm thấy ứng dụng. Vui lòng tải từ App Store bên dưới.', 'warning');
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
-    
-    const storeLinks = document.querySelectorAll('.store-link');
-    storeLinks.forEach(link => {
-        link.style.border = '3px solid #ff0000';
-        link.style.animation = 'pulse 1s infinite';
-    });
-}
-
-// Android Logic - VỚI FULL VLESS URI
-async function openVPNAppAndroid(btn) {
-    const playStoreStreisand = 'https://play.google.com/store/apps/details?id=com.github.shadowsocks.tv.vpn';
-    const playStoreSingBox = 'https://play.google.com/store/apps/details?id=io.nekohasekai.sfa';
-    
-    // Copy URI vào clipboard (backup)
-    await copyURIToClipboard();
-    
-    // Bước 1: Thử Streisand với FULL VLESS URI
-    showStatus('🔍 Đang mở Streisand...', 'info');
+// iOS - Open Streisand
+async function openStreisandiOS(btn) {
+    showStatus('🔄 Đang mở Streisand và thêm cấu hình...', 'info');
     btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
     
-    // Android Intent với full VLESS URI
-    const vlessData = vlessUri.replace('vless://', '');
-    const streisandIntent = `intent://${vlessData}#Intent;scheme=vless;package=com.github.shadowsocks.tv.vpn;end`;
-    console.log('Streisand intent:', streisandIntent);
-    const streisandOpened = await tryOpenAppAndroid(streisandIntent, 'Streisand', 3000);
+    const appStoreURL = 'https://apps.apple.com/app/streisand/id6450534064';
     
-    if (streisandOpened) {
-        showStatus('✅ Streisand đã mở! Cấu hình sẽ tự động được thêm.', 'success');
+    // Tạo deep link - iOS sử dụng vless:// URL scheme
+    const deepLink = vlessUri;
+    console.log('iOS Deep Link:', deepLink);
+    
+    let appOpened = false;
+    const startTime = Date.now();
+    
+    // Event handlers để detect app opening
+    const handleBlur = () => {
+        console.log('✓ Window blur - App opened');
+        appOpened = true;
+    };
+    
+    const handleVisibilityChange = () => {
+        if (document.hidden) {
+            console.log('✓ Document hidden - App opened');
+            appOpened = true;
+        }
+    };
+    
+    const handlePageHide = () => {
+        console.log('✓ Page hide - App opened');
+        appOpened = true;
+    };
+    
+    // Add listeners
+    window.addEventListener('blur', handleBlur, { once: false });
+    window.addEventListener('pagehide', handlePageHide, { once: false });
+    document.addEventListener('visibilitychange', handleVisibilityChange, { once: false });
+    
+    // Try to open app with deep link
+    try {
+        // Method 1: Tạo invisible iframe
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
+        iframe.style.position = 'absolute';
+        iframe.style.left = '-9999px';
+        
+        document.body.appendChild(iframe);
+        iframe.src = deepLink;
+        
+        // Method 2: Backup với window.location (sau 300ms)
         setTimeout(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
-        }, 2000);
-        return;
+            if (!appOpened) {
+                console.log('Trying backup method: window.location');
+                window.location.href = deepLink;
+            }
+        }, 300);
+        
+        // Cleanup iframe sau 1s
+        setTimeout(() => {
+            if (iframe.parentNode) {
+                document.body.removeChild(iframe);
+            }
+        }, 1000);
+        
+    } catch (e) {
+        console.error('Error opening deep link:', e);
     }
     
-    // Bước 2: Thử sing-box
-    showStatus('🔍 Đang mở sing-box...', 'info');
-    btn.innerHTML = '<span class="spinner"></span> Đang mở sing-box...';
-    
-    const singBoxIntent = `intent://${vlessData}#Intent;scheme=vless;package=io.nekohasekai.sfa;end`;
-    console.log('sing-box intent:', singBoxIntent);
-    const singBoxOpened = await tryOpenAppAndroid(singBoxIntent, 'sing-box', 3000);
-    
-    if (singBoxOpened) {
-        showStatus('✅ sing-box đã mở! Cấu hình sẽ tự động được thêm.', 'success');
-        setTimeout(() => {
+    // Wait and check result
+    setTimeout(() => {
+        // Remove listeners
+        window.removeEventListener('blur', handleBlur);
+        window.removeEventListener('pagehide', handlePageHide);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        
+        const elapsed = Date.now() - startTime;
+        console.log(`Check after ${elapsed}ms - appOpened: ${appOpened}, hidden: ${document.hidden}`);
+        
+        if (appOpened || document.hidden) {
+            // App đã mở
+            showStatus('✅ Streisand đã mở! Cấu hình VLESS đang được thêm tự động.', 'success');
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở Streisand';
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
-        }, 2000);
-        return;
-    }
-    
-    // Không tìm thấy app
-    showStatus('⚠️ Không tìm thấy ứng dụng. Vui lòng tải từ Google Play bên dưới.', 'warning');
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
-    
-    const storeLinks = document.querySelectorAll('.store-link');
-    storeLinks.forEach(link => {
-        link.style.border = '3px solid #ff0000';
-        link.style.animation = 'pulse 1s infinite';
-    });
+        } else {
+            // App chưa có → Chuyển App Store
+            showStatus('📱 Chưa cài đặt Streisand. Đang chuyển đến App Store...', 'info');
+            btn.innerHTML = '<i class="fas fa-download"></i> Đang mở App Store...';
+            
+            setTimeout(() => {
+                window.location.href = appStoreURL;
+            }, 500);
+        }
+    }, 2500);
 }
 
-// Khởi tạo khi trang load
+// Android - Open Streisand
+async function openStreisandAndroid(btn) {
+    showStatus('🔄 Đang mở Streisand và thêm cấu hình...', 'info');
+    btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
+    
+    const playStoreURL = 'https://play.google.com/store/apps/details?id=com.github.shadowsocks.tv.vpn';
+    
+    // Android Intent URL - Tự động fallback to Play Store nếu app không có
+    const vlessData = vlessUri.replace('vless://', '');
+    const intentURL = `intent://${vlessData}#Intent;scheme=vless;package=com.github.shadowsocks.tv.vpn;S.browser_fallback_url=${encodeURIComponent(playStoreURL)};end`;
+    
+    console.log('Android Intent URL:', intentURL);
+    
+    let appOpened = false;
+    
+    // Event handlers
+    const handleBlur = () => {
+        console.log('✓ Window blur - App opened');
+        appOpened = true;
+    };
+    
+    const handleVisibilityChange = () => {
+        if (document.hidden) {
+            console.log('✓ Document hidden - App opened');
+            appOpened = true;
+        }
+    };
+    
+    // Add listeners
+    window.addEventListener('blur', handleBlur, { once: false });
+    document.addEventListener('visibilitychange', handleVisibilityChange, { once: false });
+    
+    // Open with intent URL
+    try {
+        window.location.href = intentURL;
+    } catch (e) {
+        console.error('Error opening intent:', e);
+    }
+    
+    // Check result
+    setTimeout(() => {
+        // Remove listeners
+        window.removeEventListener('blur', handleBlur);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        
+        if (appOpened || document.hidden) {
+            // App đã mở
+            showStatus('✅ Streisand đã mở! Cấu hình VLESS đang được thêm tự động.', 'success');
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở Streisand';
+            btn.disabled = false;
+        } else {
+            // Đang chuyển đến Play Store (Android tự động fallback)
+            showStatus('📱 Nếu chưa cài Streisand, bạn sẽ được chuyển đến Google Play.', 'info');
+            btn.innerHTML = '<i class="fas fa-download"></i> Mở Play Store nếu cần';
+            btn.disabled = false;
+        }
+    }, 2500);
+}
+
+// Copy URI to clipboard (backup method)
+async function copyToClipboard() {
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(vlessUri);
+            console.log('✓ URI copied to clipboard');
+            return true;
+        }
+    } catch (err) {
+        console.error('Copy failed:', err);
+    }
+    return false;
+}
+
+// Initialize on page load
 window.addEventListener('load', () => {
-    copyURIToClipboard();
-    const safari = isSafari();
-    if (safari) {
-        showStatus('📱 Safari đã được hỗ trợ! URI đã copy vào clipboard. Bấm "Thêm Cấu Hình" để mở app, sau đó PASTE vào ứng dụng.', 'info');
+    // Copy URI to clipboard as backup
+    copyToClipboard();
+    
+    // Show initial message
+    const device = detectDevice();
+    if (device === 'iOS' || device === 'Android') {
+        showStatus('📱 Bấm "Thêm Cấu Hình" để tự động mở Streisand và thêm cấu hình VLESS.', 'info');
     } else {
-        showStatus('📱 Bấm "Thêm Cấu Hình" để tự động mở ứng dụng và thêm cấu hình.', 'info');
+        showStatus('💡 Vui lòng sử dụng thiết bị di động hoặc quét mã QR bằng ứng dụng Streisand.', 'info');
     }
 });
 
-// Theo dõi khi người dùng quay lại trang
-let wasHidden = false;
-document.addEventListener('visibilitychange', function() {
+// Handle visibility change - User quay lại trang sau khi cài app
+let hadLeftPage = false;
+document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-        wasHidden = true;
-    } else if (wasHidden) {
+        hadLeftPage = true;
+    } else if (hadLeftPage) {
+        // User quay lại trang
         const btn = document.getElementById('openAppBtn');
-        if (btn.disabled) {
+        if (btn) {
             btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
         }
-        btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
-        showStatus('💡 Nếu bạn vừa cài đặt ứng dụng, hãy bấm "Thử Lại".', 'info');
-        wasHidden = false;
+        showStatus('💡 Nếu bạn vừa cài đặt Streisand, hãy bấm "Thử Lại" để thêm cấu hình.', 'info');
+        hadLeftPage = false;
     }
 });
+
+// Auto trigger nếu có param ?auto=1
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('auto') === '1') {
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const btn = document.getElementById('openAppBtn');
+            if (btn) {
+                openVPNApp();
+            }
+        }, 500);
+    });
+}
