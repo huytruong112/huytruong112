@@ -1,4 +1,4 @@
-// VLESS Connection Script - Cascade Logic
+// VLESS Connection Script - Cascade Logic (FIXED)
 // Thứ tự: Streisand → sing-box → Store
 
 let vlessUri;
@@ -30,34 +30,51 @@ function showStatus(message, type = 'success') {
     statusDiv.style.display = 'block';
 }
 
-// Hàm thử mở app với timeout
-function tryOpenApp(deepLink, appName, timeout = 2000) {
+// Hàm thử mở app - FIX: Dùng iframe thay vì window.location
+function tryOpenApp(deepLink, appName, timeout = 2500) {
     return new Promise((resolve) => {
         let appOpened = false;
+        let checkTimer;
+        
+        // Tạo iframe ẩn để thử mở deep link
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = deepLink;
         
         const handleBlur = () => {
             appOpened = true;
+            cleanup();
             resolve(true);
         };
         
         const handleVisibilityChange = () => {
             if (document.hidden) {
                 appOpened = true;
+                cleanup();
                 resolve(true);
             }
         };
         
-        window.addEventListener('blur', handleBlur, { once: true });
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        
-        // Thử mở app
-        window.location.href = deepLink;
-        
-        // Timeout check
-        setTimeout(() => {
+        const cleanup = () => {
+            clearTimeout(checkTimer);
             window.removeEventListener('blur', handleBlur);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            
+            setTimeout(() => {
+                if (iframe.parentNode) {
+                    document.body.removeChild(iframe);
+                }
+            }, 100);
+        };
+        
+        window.addEventListener('blur', handleBlur);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Thêm iframe vào body để trigger deep link
+        document.body.appendChild(iframe);
+        
+        // Timeout check
+        checkTimer = setTimeout(() => {
+            cleanup();
             if (!appOpened && !document.hidden) {
                 resolve(false);
             }
@@ -91,8 +108,8 @@ async function openVPNAppiOS(btn) {
     showStatus('🔍 Đang thử mở Streisand...', 'info');
     btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
     
-    const streisandDeepLink = vlessUri; // Streisand có thể dùng VLESS URI trực tiếp
-    const streisandOpened = await tryOpenApp(streisandDeepLink, 'Streisand', 2000);
+    const streisandDeepLink = vlessUri;
+    const streisandOpened = await tryOpenApp(streisandDeepLink, 'Streisand', 2500);
     
     if (streisandOpened) {
         showStatus('✅ Đã mở Streisand thành công! Vui lòng xác nhận thêm cấu hình trong ứng dụng.', 'success');
@@ -107,8 +124,8 @@ async function openVPNAppiOS(btn) {
     showStatus('🔍 Streisand không có, đang thử mở sing-box...', 'info');
     btn.innerHTML = '<span class="spinner"></span> Đang mở sing-box...';
     
-    const singBoxDeepLink = vlessUri; // sing-box cũng support VLESS URI
-    const singBoxOpened = await tryOpenApp(singBoxDeepLink, 'sing-box', 2000);
+    const singBoxDeepLink = vlessUri;
+    const singBoxOpened = await tryOpenApp(singBoxDeepLink, 'sing-box', 2500);
     
     if (singBoxOpened) {
         showStatus('✅ Đã mở sing-box thành công! Vui lòng xác nhận thêm cấu hình trong ứng dụng.', 'success');
@@ -125,7 +142,7 @@ async function openVPNAppiOS(btn) {
     
     setTimeout(() => {
         window.location.href = appStoreStreisand;
-    }, 1000);
+    }, 1500);
 }
 
 // Android Logic
@@ -137,9 +154,8 @@ async function openVPNAppAndroid(btn) {
     showStatus('🔍 Đang thử mở Streisand...', 'info');
     btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
     
-    // Android Intent cho Streisand (giả sử package name)
     const streisandIntent = `intent:${vlessUri.replace('vless://', '')}#Intent;scheme=vless;package=com.github.shadowsocks.tv.vpn;end`;
-    const streisandOpened = await tryOpenApp(streisandIntent, 'Streisand', 2000);
+    const streisandOpened = await tryOpenApp(streisandIntent, 'Streisand', 2500);
     
     if (streisandOpened) {
         showStatus('✅ Đã mở Streisand thành công! Vui lòng xác nhận thêm cấu hình trong ứng dụng.', 'success');
@@ -154,9 +170,8 @@ async function openVPNAppAndroid(btn) {
     showStatus('🔍 Streisand không có, đang thử mở sing-box...', 'info');
     btn.innerHTML = '<span class="spinner"></span> Đang mở sing-box...';
     
-    // Android Intent cho sing-box
     const singBoxIntent = `intent:${vlessUri.replace('vless://', '')}#Intent;scheme=vless;package=io.nekohasekai.sfa;end`;
-    const singBoxOpened = await tryOpenApp(singBoxIntent, 'sing-box', 2000);
+    const singBoxOpened = await tryOpenApp(singBoxIntent, 'sing-box', 2500);
     
     if (singBoxOpened) {
         showStatus('✅ Đã mở sing-box thành công! Vui lòng xác nhận thêm cấu hình trong ứng dụng.', 'success');
@@ -173,7 +188,7 @@ async function openVPNAppAndroid(btn) {
     
     setTimeout(() => {
         window.location.href = playStoreStreisand;
-    }, 1000);
+    }, 1500);
 }
 
 function copyToClipboard() {
