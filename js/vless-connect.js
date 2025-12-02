@@ -1,5 +1,5 @@
-// VLESS Connection Script - Improved Detection
-// Tự động mở app nếu đã cài, chỉ chuyển Store nếu chưa có
+// VLESS Connection Script - FIXED Detection
+// Đã cài app → Tự động mở, KHÔNG chuyển Store
 
 let vlessUri;
 let vlessUriEncoded;
@@ -30,84 +30,91 @@ function showStatus(message, type = 'success') {
     statusDiv.style.display = 'block';
 }
 
-// Hàm thử mở app - IMPROVED: Better detection
-function tryOpenApp(deepLink, appName, timeout = 3000) {
+// Hàm thử mở app - SIMPLIFIED & RELIABLE
+function tryOpenApp(deepLink, appName, timeout = 5000) {
     return new Promise((resolve) => {
-        let appOpened = false;
-        let checkTimer;
-        const startTime = Date.now();
+        let resolved = false;
+        let startTime = Date.now();
         
-        // Tạo iframe ẩn để thử mở deep link
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
+        const resolveOnce = (success) => {
+            if (!resolved) {
+                resolved = true;
+                resolve(success);
+            }
+        };
         
+        // Detect khi app mở thành công
         const handleBlur = () => {
-            appOpened = true;
-            cleanup();
-            resolve(true);
+            console.log('Window blur detected - App opened');
+            resolveOnce(true);
         };
         
         const handleVisibilityChange = () => {
             if (document.hidden) {
-                appOpened = true;
-                cleanup();
-                resolve(true);
+                console.log('Document hidden - App opened');
+                resolveOnce(true);
             }
         };
         
-        // Check nếu user rời khỏi trang (app đã mở)
         const handlePageHide = () => {
-            appOpened = true;
-            cleanup();
-            resolve(true);
+            console.log('Page hide - App opened');
+            resolveOnce(true);
         };
         
-        const cleanup = () => {
-            clearTimeout(checkTimer);
-            window.removeEventListener('blur', handleBlur);
-            window.removeEventListener('pagehide', handlePageHide);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            setTimeout(() => {
-                if (iframe.parentNode) {
-                    document.body.removeChild(iframe);
-                }
-            }, 100);
-        };
-        
-        // Thêm các event listeners
+        // Add listeners
         window.addEventListener('blur', handleBlur);
         window.addEventListener('pagehide', handlePageHide);
         document.addEventListener('visibilitychange', handleVisibilityChange);
         
-        // Set deep link và thêm vào body
-        iframe.src = deepLink;
-        document.body.appendChild(iframe);
+        // Cleanup function
+        const cleanup = () => {
+            window.removeEventListener('blur', handleBlur);
+            window.removeEventListener('pagehide', handlePageHide);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
         
-        // Alternative: Cũng thử với window.location cho iOS
-        setTimeout(() => {
-            if (!appOpened) {
-                window.location.href = deepLink;
-            }
-        }, 100);
+        // Tạo iframe để trigger deep link
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = 'none';
         
-        // Timeout check - kiểm tra kỹ hơn
-        checkTimer = setTimeout(() => {
-            const elapsed = Date.now() - startTime;
+        try {
+            iframe.src = deepLink;
+            document.body.appendChild(iframe);
             
-            // Nếu trang vẫn còn focus sau timeout → app không có
-            if (!appOpened && !document.hidden && document.hasFocus()) {
-                cleanup();
-                resolve(false);
-            } else if (appOpened || document.hidden) {
-                // App đã mở hoặc đang mở
-                cleanup();
-                resolve(true);
-            } else {
-                // Trường hợp không chắc chắn → cho là app đã mở
-                cleanup();
-                resolve(true);
+            // Backup: Cũng thử với window.location
+            setTimeout(() => {
+                if (!resolved) {
+                    window.location.href = deepLink;
+                }
+            }, 200);
+        } catch (e) {
+            console.error('Error opening deep link:', e);
+        }
+        
+        // Timeout - CHỈ resolve false khi CHẮC CHẮN app không mở
+        setTimeout(() => {
+            cleanup();
+            
+            // Remove iframe
+            if (iframe.parentNode) {
+                document.body.removeChild(iframe);
+            }
+            
+            // Kiểm tra thời gian: nếu đã blur/hidden thì app đã mở
+            if (!resolved) {
+                const elapsed = Date.now() - startTime;
+                console.log(`Timeout after ${elapsed}ms, page still visible: ${!document.hidden}, has focus: ${document.hasFocus()}`);
+                
+                // Chỉ return false nếu trang vẫn visible VÀ có focus
+                if (!document.hidden && document.hasFocus()) {
+                    resolveOnce(false);
+                } else {
+                    // Không chắc chắn → assume app đã mở
+                    resolveOnce(true);
+                }
             }
         }, timeout);
     });
@@ -130,96 +137,109 @@ async function openVPNApp() {
     }
 }
 
-// iOS Logic - IMPROVED
+// iOS Logic - FIXED
 async function openVPNAppiOS(btn) {
     const appStoreStreisand = 'https://apps.apple.com/app/streisand/id6450534064';
     const appStoreSingBox = 'https://apps.apple.com/app/sing-box/id6451272673';
     
-    // Bước 1: Thử Streisand với timeout dài hơn
-    showStatus('🔍 Đang kiểm tra Streisand...', 'info');
+    // Bước 1: Thử Streisand với timeout DÀI (5s)
+    showStatus('🔍 Đang mở Streisand...', 'info');
     btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
     
     const streisandDeepLink = vlessUri;
-    const streisandOpened = await tryOpenApp(streisandDeepLink, 'Streisand', 3000);
+    console.log('Trying Streisand with deep link:', streisandDeepLink);
+    const streisandOpened = await tryOpenApp(streisandDeepLink, 'Streisand', 5000);
     
     if (streisandOpened) {
-        showStatus('✅ Streisand đã mở! Đang thêm cấu hình tự động...', 'success');
+        showStatus('✅ Streisand đã mở! Vui lòng xác nhận thêm cấu hình trong ứng dụng.', 'success');
         setTimeout(() => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Kết Nối';
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
         }, 2000);
         return;
     }
     
-    // Bước 2: Thử sing-box
-    showStatus('🔍 Đang kiểm tra sing-box...', 'info');
+    // Bước 2: Thử sing-box với timeout DÀI (5s)
+    showStatus('🔍 Đang mở sing-box...', 'info');
     btn.innerHTML = '<span class="spinner"></span> Đang mở sing-box...';
     
     const singBoxDeepLink = vlessUri;
-    const singBoxOpened = await tryOpenApp(singBoxDeepLink, 'sing-box', 3000);
+    console.log('Trying sing-box with deep link:', singBoxDeepLink);
+    const singBoxOpened = await tryOpenApp(singBoxDeepLink, 'sing-box', 5000);
     
     if (singBoxOpened) {
-        showStatus('✅ sing-box đã mở! Đang thêm cấu hình tự động...', 'success');
+        showStatus('✅ sing-box đã mở! Vui lòng xác nhận thêm cấu hình trong ứng dụng.', 'success');
         setTimeout(() => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Kết Nối';
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
         }, 2000);
         return;
     }
     
-    // Bước 3: Không có app nào → Chuyển Store
-    showStatus('⚠️ Chưa cài ứng dụng. Đang chuyển đến App Store để tải Streisand...', 'warning');
-    btn.innerHTML = '<span class="spinner"></span> Đang mở App Store...';
+    // Bước 3: Cả 2 đều không có → Hiển thị links Store (KHÔNG tự động chuyển)
+    showStatus('⚠️ Không tìm thấy ứng dụng. Vui lòng tải ứng dụng từ bên dưới.', 'warning');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
     
-    setTimeout(() => {
-        window.location.href = appStoreStreisand;
-    }, 1500);
+    // Hiển thị nổi bật các link store
+    const storeLinks = document.querySelectorAll('.store-link');
+    storeLinks.forEach(link => {
+        link.style.border = '3px solid #ff0000';
+        link.style.animation = 'pulse 1s infinite';
+    });
 }
 
-// Android Logic - IMPROVED
+// Android Logic - FIXED
 async function openVPNAppAndroid(btn) {
     const playStoreStreisand = 'https://play.google.com/store/apps/details?id=com.github.shadowsocks.tv.vpn';
     const playStoreSingBox = 'https://play.google.com/store/apps/details?id=io.nekohasekai.sfa';
     
-    // Bước 1: Thử Streisand với timeout dài hơn
-    showStatus('🔍 Đang kiểm tra Streisand...', 'info');
+    // Bước 1: Thử Streisand với timeout DÀI (5s)
+    showStatus('🔍 Đang mở Streisand...', 'info');
     btn.innerHTML = '<span class="spinner"></span> Đang mở Streisand...';
     
-    const streisandIntent = `intent:${vlessUri.replace('vless://', '')}#Intent;scheme=vless;package=com.github.shadowsocks.tv.vpn;S.browser_fallback_url=${encodeURIComponent(playStoreStreisand)};end`;
-    const streisandOpened = await tryOpenApp(streisandIntent, 'Streisand', 3000);
+    // Intent KHÔNG có fallback URL (để tránh tự động chuyển store)
+    const streisandIntent = `intent:${vlessUri.replace('vless://', '')}#Intent;scheme=vless;package=com.github.shadowsocks.tv.vpn;end`;
+    console.log('Trying Streisand with intent:', streisandIntent);
+    const streisandOpened = await tryOpenApp(streisandIntent, 'Streisand', 5000);
     
     if (streisandOpened) {
-        showStatus('✅ Streisand đã mở! Đang thêm cấu hình tự động...', 'success');
+        showStatus('✅ Streisand đã mở! Vui lòng xác nhận thêm cấu hình trong ứng dụng.', 'success');
         setTimeout(() => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Kết Nối';
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
         }, 2000);
         return;
     }
     
-    // Bước 2: Thử sing-box
-    showStatus('🔍 Đang kiểm tra sing-box...', 'info');
+    // Bước 2: Thử sing-box với timeout DÀI (5s)
+    showStatus('🔍 Đang mở sing-box...', 'info');
     btn.innerHTML = '<span class="spinner"></span> Đang mở sing-box...';
     
-    const singBoxIntent = `intent:${vlessUri.replace('vless://', '')}#Intent;scheme=vless;package=io.nekohasekai.sfa;S.browser_fallback_url=${encodeURIComponent(playStoreSingBox)};end`;
-    const singBoxOpened = await tryOpenApp(singBoxIntent, 'sing-box', 3000);
+    const singBoxIntent = `intent:${vlessUri.replace('vless://', '')}#Intent;scheme=vless;package=io.nekohasekai.sfa;end`;
+    console.log('Trying sing-box with intent:', singBoxIntent);
+    const singBoxOpened = await tryOpenApp(singBoxIntent, 'sing-box', 5000);
     
     if (singBoxOpened) {
-        showStatus('✅ sing-box đã mở! Đang thêm cấu hình tự động...', 'success');
+        showStatus('✅ sing-box đã mở! Vui lòng xác nhận thêm cấu hình trong ứng dụng.', 'success');
         setTimeout(() => {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Kết Nối';
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Đã Mở App';
         }, 2000);
         return;
     }
     
-    // Bước 3: Không có app nào → Chuyển Store
-    showStatus('⚠️ Chưa cài ứng dụng. Đang chuyển đến Google Play để tải Streisand...', 'warning');
-    btn.innerHTML = '<span class="spinner"></span> Đang mở Google Play...';
+    // Bước 3: Cả 2 đều không có → Hiển thị links Store (KHÔNG tự động chuyển)
+    showStatus('⚠️ Không tìm thấy ứng dụng. Vui lòng tải ứng dụng từ bên dưới.', 'warning');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
     
-    setTimeout(() => {
-        window.location.href = playStoreStreisand;
-    }, 1500);
+    // Hiển thị nổi bật các link store
+    const storeLinks = document.querySelectorAll('.store-link');
+    storeLinks.forEach(link => {
+        link.style.border = '3px solid #ff0000';
+        link.style.animation = 'pulse 1s infinite';
+    });
 }
 
 function copyToClipboard() {
@@ -236,11 +256,8 @@ function copyToClipboard() {
 
 // Khởi tạo khi trang load
 window.addEventListener('load', () => {
-    // Copy URI vào clipboard
     copyToClipboard();
-
-    // Hiển thị thông báo hướng dẫn
-    showStatus('📱 Bấm nút "Thêm Cấu Hình" để tự động kết nối. Nếu đã cài app, sẽ mở ngay. Nếu chưa cài, sẽ chuyển đến Store.', 'warning');
+    showStatus('📱 Bấm "Thêm Cấu Hình" để tự động mở ứng dụng. Nếu đã cài app, sẽ tự động mở. Nếu không mở, vui lòng tải từ Store bên dưới.', 'info');
 });
 
 // Theo dõi khi người dùng quay lại trang
@@ -254,7 +271,7 @@ document.addEventListener('visibilitychange', function() {
             btn.disabled = false;
         }
         btn.innerHTML = '<i class="fas fa-redo"></i> Thử Lại';
-        showStatus('💡 Nếu bạn vừa cài đặt ứng dụng, hãy bấm "Thử Lại" để tự động thêm cấu hình.', 'warning');
+        showStatus('💡 Nếu bạn vừa cài đặt ứng dụng, hãy bấm "Thử Lại" để mở app.', 'info');
         wasHidden = false;
     }
 });
