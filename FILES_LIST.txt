@@ -1,0 +1,101 @@
+╔════════════════════════════════════════════════════════════════╗
+║          📦 DANH SÁCH FILES - CHỈ WIREGUARD DUY NHẤT           ║
+╚════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════
+🔵 PRODUCTION FILES (4 files) - CẦN UPLOAD
+═══════════════════════════════════════════════════════════════════
+
+PHP Files (2):
+  ✓ wireguard_connect.php         → /workspace/
+  ✓ manage_services.php           → /workspace/ (overwrite file cũ)
+
+CSS Files (1):
+  ✓ css/wireguard-connect.css     → /workspace/css/
+
+JavaScript Files (1):
+  ✓ js/wireguard-connect.js       → /workspace/js/
+
+═══════════════════════════════════════════════════════════════════
+📚 DOCUMENTATION FILES (3 files) - THAM KHẢO
+═══════════════════════════════════════════════════════════════════
+
+  1. START_HERE.md              ⭐ BẮT ĐẦU TỪ ĐÂY (2 phút)
+     └─ Quick guide, upload files, test ngay
+
+  2. README.md                  📖 Tài liệu đầy đủ (10 phút)
+     └─ Chi tiết tính năng, code, troubleshooting
+
+  3. DEPLOYMENT.md              🚀 Deploy guide (15 phút)
+     └─ Checklist đầy đủ, testing, monitoring
+
+═══════════════════════════════════════════════════════════════════
+🗑️  DELETED FILES (V2Box - không cần nữa)
+═══════════════════════════════════════════════════════════════════
+
+  ✗ v2box_connect.php           - DELETED
+  ✗ css/v2box-connect.css       - DELETED
+  ✗ js/v2box-connect.js         - DELETED
+  ✗ README_V2BOX.md             - DELETED
+  ✗ INDEX.md                    - DELETED (thay bằng START_HERE.md)
+  ✗ QUICK_START.md              - DELETED (merged vào START_HERE.md)
+  ✗ CHECKLIST.md                - DELETED (merged vào DEPLOYMENT.md)
+  ✗ SUMMARY.md                  - DELETED (merged vào README.md)
+  ✗ README_WIREGUARD_CONNECT.md - DELETED (merged vào README.md)
+  ✗ FILES_MANIFEST.txt          - DELETED (thay bằng file này)
+
+═══════════════════════════════════════════════════════════════════
+🎯 TÍNH NĂNG
+═══════════════════════════════════════════════════════════════════
+
+  Nút "Kết nối ngay" WireGuard
+  
+  ✓ Chỉ gọi ứng dụng WireGuard DUY NHẤT
+  ✓ KHÔNG gọi bất kỳ ứng dụng nào khác
+  ✓ Tự động mở WireGuard nếu đã cài
+  ✓ Tự động chuyển Store nếu chưa cài
+
+═══════════════════════════════════════════════════════════════════
+📱 DEEP LINKS
+═══════════════════════════════════════════════════════════════════
+
+  iOS:
+  wireguard://import-profile?contents=BASE64_CONFIG
+  └─ Fallback: App Store
+
+  Android:
+  intent://import-profile?contents=BASE64_CONFIG
+  #Intent;scheme=wireguard;package=com.wireguard.android;end
+  └─ Fallback: Google Play
+
+  Desktop:
+  Hiển thị QR Code (scan bằng mobile)
+
+═══════════════════════════════════════════════════════════════════
+⚡ QUICK DEPLOY
+═══════════════════════════════════════════════════════════════════
+
+  1. Upload 4 production files
+  2. chmod 755 css/ js/ qrcodes/
+  3. Test trên mobile (Safari iOS / Chrome Android)
+  4. Done! ✅
+
+═══════════════════════════════════════════════════════════════════
+📖 NEXT STEPS
+═══════════════════════════════════════════════════════════════════
+
+  👉 Đọc: START_HERE.md để bắt đầu deploy
+  👉 Hoặc: README.md để hiểu chi tiết
+  👉 Hoặc: DEPLOYMENT.md để có checklist đầy đủ
+
+═══════════════════════════════════════════════════════════════════
+✅ CONFIRMATION
+═══════════════════════════════════════════════════════════════════
+
+  ✅ Only WireGuard app is called
+  ✅ No other apps (V2Box removed)
+  ✅ Auto-open WireGuard if installed
+  ✅ Auto-redirect to Store if not installed
+  ✅ Clean code, production ready
+
+═══════════════════════════════════════════════════════════════════

@@ -1,0 +1,176 @@
+╔════════════════════════════════════════════════════════════════╗
+║          📦 DANH SÁCH FILES - STREISAND & SING-BOX             ║
+╚════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════
+🔵 PRODUCTION FILES (4 files) - CẦN UPLOAD
+═══════════════════════════════════════════════════════════════════
+
+PHP Files (2):
+  ✓ vless_connect.php           → /workspace/
+  ✓ manage_services.php         → /workspace/ (overwrite)
+
+CSS Files (2):
+  ✓ css/vless-connect.css       → /workspace/css/
+  ✓ css/wireguard-connect.css   → /workspace/css/
+
+JavaScript Files (2):
+  ✓ js/vless-connect.js         → /workspace/js/
+  ✓ js/wireguard-connect.js     → /workspace/js/
+
+═══════════════════════════════════════════════════════════════════
+📚 DOCUMENTATION FILES (4 files) - THAM KHẢO
+═══════════════════════════════════════════════════════════════════
+
+  1. START_HERE.md              ⭐ WireGuard guide
+  2. README.md                  📖 WireGuard docs
+  3. DEPLOYMENT.md              🚀 WireGuard deployment
+  4. README_VLESS.md            📖 VLESS cascade docs (MỚI)
+
+═══════════════════════════════════════════════════════════════════
+🎯 2 TÍNH NĂNG CHÍNH
+═══════════════════════════════════════════════════════════════════
+
+1️⃣  WIREGUARD AUTO-CONNECT
+    └─ File: wireguard_connect.php
+    └─ Chỉ gọi WireGuard duy nhất
+    └─ Fallback: WireGuard stores
+
+2️⃣  VLESS AUTO-CONNECT (CASCADE)
+    └─ File: vless_connect.php
+    └─ Logic: Streisand → sing-box → Store
+    └─ Timeout: 2s mỗi app
+
+═══════════════════════════════════════════════════════════════════
+🔄 LOGIC FLOWS
+═══════════════════════════════════════════════════════════════════
+
+WIREGUARD (1 app):
+  Click → WireGuard → (if fail) → Store
+
+VLESS (2 apps cascade):
+  Click → Streisand → (if fail 2s) 
+       → sing-box → (if fail 2s)
+       → Store
+
+═══════════════════════════════════════════════════════════════════
+🗂️  FILE PURPOSES
+═══════════════════════════════════════════════════════════════════
+
+wireguard_connect.php
+  └─ Kết nối WireGuard VPN
+  └─ Tự động mở WireGuard app
+  └─ QR Code backup
+
+vless_connect.php
+  └─ Kết nối VLESS VPN
+  └─ Cascade: Streisand → sing-box
+  └─ QR Code backup
+
+manage_services.php
+  └─ Bảng quản lý dịch vụ
+  └─ Link WireGuard: wireguard_connect.php
+  └─ Link VLESS: vless_connect.php
+
+css/wireguard-connect.css
+  └─ Styles cho WireGuard
+  └─ Gradient: #88d3ce → #6e45e2
+
+css/vless-connect.css
+  └─ Styles cho VLESS
+  └─ Gradient: #667eea → #764ba2
+  └─ Priority info box
+
+js/wireguard-connect.js
+  └─ WireGuard deep link logic
+  └─ iOS/Android detection
+  └─ Store fallback
+
+js/vless-connect.js
+  └─ VLESS cascade logic
+  └─ async/await promises
+  └─ tryOpenApp() với timeout
+  └─ Streisand → sing-box → Store
+
+═══════════════════════════════════════════════════════════════════
+📱 DEEP LINKS
+═══════════════════════════════════════════════════════════════════
+
+WireGuard:
+  iOS:     wireguard://import-profile?contents=BASE64
+  Android: intent://... package=com.wireguard.android
+
+Streisand:
+  iOS:     vless://...
+  Android: intent://... package=com.github.shadowsocks.tv.vpn
+
+sing-box:
+  iOS:     vless://...
+  Android: intent://... package=io.nekohasekai.sfa
+
+═══════════════════════════════════════════════════════════════════
+🚀 QUICK DEPLOY
+═══════════════════════════════════════════════════════════════════
+
+Tùy chọn 1: Chỉ WireGuard
+  Upload:
+    - wireguard_connect.php
+    - manage_services.php
+    - css/wireguard-connect.css
+    - js/wireguard-connect.js
+
+Tùy chọn 2: Chỉ VLESS
+  Upload:
+    - vless_connect.php
+    - manage_services.php
+    - css/vless-connect.css
+    - js/vless-connect.js
+
+Tùy chọn 3: Cả hai (RECOMMENDED)
+  Upload:
+    - wireguard_connect.php
+    - vless_connect.php
+    - manage_services.php
+    - css/wireguard-connect.css
+    - css/vless-connect.css
+    - js/wireguard-connect.js
+    - js/vless-connect.js
+
+Sau đó:
+  chmod 755 css/ js/ qrcodes/
+  Test trên mobile
+
+═══════════════════════════════════════════════════════════════════
+📖 DOCUMENTATION MAP
+═══════════════════════════════════════════════════════════════════
+
+Cho WireGuard:
+  👉 START_HERE.md     - Quick start (2 phút)
+  👉 README.md         - Chi tiết (10 phút)
+  👉 DEPLOYMENT.md     - Deploy guide (15 phút)
+
+Cho VLESS (Streisand & sing-box):
+  👉 README_VLESS.md   - Chi tiết cascade logic (10 phút)
+
+═══════════════════════════════════════════════════════════════════
+✅ STATUS
+═══════════════════════════════════════════════════════════════════
+
+  ✅ WireGuard: Production ready
+  ✅ VLESS: Production ready
+  ✅ Cascade logic: Implemented
+  ✅ Documentation: Complete
+  ✅ Testing guide: Available
+
+═══════════════════════════════════════════════════════════════════
+🎊 SUMMARY
+═══════════════════════════════════════════════════════════════════
+
+  • 2 tính năng auto-connect
+  • WireGuard: Simple (1 app)
+  • VLESS: Smart cascade (Streisand → sing-box)
+  • Full iOS + Android support
+  • Production ready
+  • Well documented
+
+═══════════════════════════════════════════════════════════════════
